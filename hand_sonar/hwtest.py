@@ -56,8 +56,8 @@ def build_sweep(freqs: list[float], amplitude: float) -> tuple[np.ndarray, list[
 
 
 def play_and_record(signal: np.ndarray, out_index: int, in_index: int,
-                    out_channels: int) -> np.ndarray:
-    """Play `signal` on every output channel while recording mono from the input."""
+                    out_channels: int, channel: int | None = None) -> np.ndarray:
+    """Play `signal` on one output channel (None = all) while recording mono from the input."""
     recorded: list[np.ndarray] = []
     errors: list[str] = []
     pos = 0
@@ -74,7 +74,10 @@ def play_and_record(signal: np.ndarray, out_index: int, in_index: int,
             errors.append(f"output: {status}")
         chunk = signal[pos:pos + frames]
         outdata[:] = 0
-        outdata[:len(chunk)] = chunk[:, None]
+        if channel is None:
+            outdata[:len(chunk)] = chunk[:, None]
+        else:
+            outdata[:len(chunk), channel] = chunk
         pos += frames
         if pos >= len(signal):
             done.set()
@@ -128,6 +131,8 @@ def main(argv: list[str] | None = None) -> int:
     p.add_argument("--out", dest="out_name", help="output device name substring")
     p.add_argument("--in", dest="in_name", help="input device name substring")
     p.add_argument("--amp", type=float, default=0.1, help=f"tone amplitude 0..{MAX_AMPLITUDE}")
+    p.add_argument("--channel", choices=["both", "left", "right"], default="both",
+                   help="play on one speaker only (e.g. a single headphone cup)")
     p.add_argument("--lo", type=float, default=16000)
     p.add_argument("--hi", type=float, default=22000)
     p.add_argument("--step", type=float, default=500)
@@ -146,7 +151,11 @@ def main(argv: list[str] | None = None) -> int:
     print(f"out: {out_dev.name}\nin:  {in_dev.name}\nsweeping {freqs[0]:.0f}-{freqs[-1]:.0f} Hz "
           f"at amplitude {args.amp} ({len(signal) / SAMPLERATE:.1f} s)...")
     try:
-        rec = play_and_record(signal, out_dev.index, in_dev.index, out_dev.channels)
+        ch = {"both": None, "left": 0, "right": 1}[args.channel]
+        if ch is not None and ch >= out_dev.channels:
+            print(f"error: {out_dev.name} has only {out_dev.channels} channel(s)", file=sys.stderr)
+            return 2
+        rec = play_and_record(signal, out_dev.index, in_dev.index, out_dev.channels, ch)
     except (sd.PortAudioError, RuntimeError) as e:
         print(f"error: audio I/O failed: {e}", file=sys.stderr)
         return 1
