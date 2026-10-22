@@ -61,8 +61,8 @@ input hooks and the hotkey on this PC):
 tracker, hotkey, app (tray), autostart, record, replay.
 
 ### When the webcam arrives
-1. Approve downloading the MediaPipe hand model (`hand_landmarker.task`, ~8 MB, Google
-   storage URL in `handctl/tracker.py`) into `models/`.
+1. ~~Download the hand model~~ done 2026-10-22: `models/hand_landmarker.task`, 7,819,105 bytes,
+   sha256 fbc2a300...607cde1 (from the URL in `handctl/tracker.py`; models/ is gitignored).
 2. Mount the camera on the monitor, tilted down at the desk.
 3. `python -m handctl.record --name s1 --position "front"` (repeat at 2-3 positions/angles).
 4. `python -m handctl.replay data/recordings/s1` -> tune `config/gestures.toml` until hits are
