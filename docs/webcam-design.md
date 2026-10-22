@@ -87,3 +87,13 @@ tracker, hotkey, app (tray), autostart, record, replay.
 - Options: (a) change click to a gesture visible from above (fingertip "press" like a mouse
   button), (b) camera from the side of the hand so the thumb gap is in profile, (c) palm
   facing the camera (rejected: gorilla arm).
+
+## Motion-model experiment (Kayden's idea: interpret the whole hand over time)
+`tools/seq_experiment.py`: per-frame view-normalised pose (2D hand-aligned keypoints, 3D palm
+frame, 15 joint flexion angles) -> 0.4 s window summaries -> gradient-boosted classifier.
+- Train s1 -> test s2 (camera was re-aimed between them): 0/29 taps. Doesn't transfer across
+  camera placements.
+- Pooled s1+s2, grouped 5-fold CV (3 s blocks): per-frame recall left 50% (precision 62%),
+  right 49% (42%), vs base rates of 3.4% / 1.8%. **There is real signal in whole-hand motion**;
+  44 taps is just far too little data, and the camera must stay put.
+- Next: fixed camera, ~40 taps/min per gesture for a few minutes, negatives, leave-one-session-out.
