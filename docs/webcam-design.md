@@ -33,8 +33,17 @@ and the system infers intent instead of requiring theatrical poses.
 
 ## Ergonomics ("no gorilla arm")
 - Camera on top of the monitor, tilted down to see the desk/keyboard area where hands rest.
-- Microgestures with the hand resting: thumb-to-index pinch = click, thumb-to-middle = right
-  click, pinch-and-slide = scroll/drag, small index movement while engaged = cursor.
+- Gesture map (agreed 2026-10-22, full parameters in `config/gestures.toml`):
+  | Gesture | Action |
+  |---|---|
+  | thumb-to-index tap | left click |
+  | thumb-to-middle tap | right click |
+  | thumb-to-index pinch, hold, move, release | drag (e.g. browser tabs) |
+  | index finger alone slides up/down/sideways | scroll, iPhone "natural" direction, with flick momentum |
+  | whole hand moves (palm centre) | cursor, relative + accelerated |
+  | open palm held still | wake / show overlay |
+- Scroll vs cursor are told apart by *what* moves: index tip moving relative to a still palm
+  = scroll; the palm itself moving = cursor.
 
 ## Honest limits
 - A single camera cannot see fingers hidden behind the palm (edge-on hand); temporal tracking

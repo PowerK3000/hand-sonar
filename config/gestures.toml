@@ -1,0 +1,60 @@
+# Webcam hand-control gesture map (draft 2026-10-22). Numbers are starting points; they get
+# tuned against recordings of Kayden's real hand once the camera arrives.
+# Distances are in hand-size units (1.0 = wrist to middle-finger knuckle), so the same
+# values work at any distance or angle from the camera.
+
+[engagement]
+# Control is only live while engaged; stops typing/reaching from firing actions.
+disengage_on_keyboard = true      # any key press disengages instantly
+disengage_on_mouse = true         # touching the real mouse disengages instantly
+reengage_after_ms = 400           # keyboard/mouse must be idle this long before hands count again
+min_confidence = 0.6              # ignore frames where the tracker is unsure
+
+[pointer]
+# Cursor follows the whole hand (palm centre), not a single finger, so the index finger
+# stays free for scrolling. Relative mode, like a trackpad: small hand travel, accelerated.
+source = "palm_center"
+mode = "relative"
+gain = 1.0
+acceleration = 1.6
+deadzone = 0.01                   # hand-size units; kills micro-jitter at rest
+
+[gestures.click]
+action = "left_click"
+pose = "thumb_index_pinch"
+pinch_close = 0.18                # thumb-index tip distance to count as touching
+pinch_open = 0.28                 # must open past this to release (hysteresis, no double fires)
+max_hold_ms = 250                 # held longer, or moved, and it becomes a drag instead
+max_move = 0.05
+
+[gestures.right_click]
+action = "right_click"
+pose = "thumb_middle_pinch"
+pinch_close = 0.18
+pinch_open = 0.28
+max_hold_ms = 300
+
+[gestures.drag]
+# Pinch, hold, move, release: e.g. dragging a browser tab.
+action = "left_drag"
+pose = "thumb_index_pinch"
+start_after_ms = 250              # or as soon as the hand moves more than start_move
+start_move = 0.05
+
+[gestures.scroll]
+# iPhone-style: slide the extended index finger; the content follows the finger.
+# Finger up -> content moves up -> page scrolls down (and vice versa).
+action = "scroll"
+pose = "index_extended"           # index out; middle, ring and pinky curled
+motion = "finger_relative"        # index tip moving relative to the palm, not the whole hand
+natural = true
+vertical = true
+horizontal = true                 # sideways slide = horizontal scroll
+speed = 1.0
+momentum = true                   # a quick flick keeps coasting and decays, like iOS
+momentum_decay = 0.92             # per frame at 60 fps
+
+[gestures.wake]
+action = "wake"                   # show the pointer overlay / wake the screen
+pose = "open_palm_still"
+hold_ms = 600
