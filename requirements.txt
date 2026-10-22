@@ -1,4 +1,6 @@
+bleak==3.0.2
 comtypes==1.4.17
+hidapi==0.15.0
 numpy==2.5.4
 pillow==13.0.0
 pycaw==20260927
