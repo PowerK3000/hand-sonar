@@ -53,3 +53,25 @@ and the system infers intent instead of requiring theatrical poses.
 ## Evaluation (data first)
 Record labelled sessions at 3+ hand positions/angles; report per-gesture precision/recall and
 false triggers per hour of normal typing. Ship only gestures that beat agreed thresholds.
+
+## Status (2026-10-22, end of day)
+Built and tested without a camera (42 tests on synthetic hands, plus live checks of SendInput,
+input hooks and the hotkey on this PC):
+`handctl/` config, features, one_euro, gestures, pointer, controller, engagement, output,
+tracker, hotkey, app (tray), autostart, record, replay.
+
+### When the webcam arrives
+1. Approve downloading the MediaPipe hand model (`hand_landmarker.task`, ~8 MB, Google
+   storage URL in `handctl/tracker.py`) into `models/`.
+2. Mount the camera on the monitor, tilted down at the desk.
+3. `python -m handctl.record --name s1 --position "front"` (repeat at 2-3 positions/angles).
+4. `python -m handctl.replay data/recordings/s1` -> tune `config/gestures.toml` until hits are
+   high and false triggers in rest/typing/mouse/cursor/face are ~zero.
+5. `python -m handctl.app` (tray icon, Ctrl+Alt+H pauses), then
+   `python -m handctl.autostart enable` once it's trusted.
+
+### Unverified until real data
+- MediaPipe handedness label swap (assumed: unmirrored feed swaps Left/Right).
+- Scroll axis sign (`vertical_axis`), all thresholds.
+- ipad-pointer integration not started (it should keep working unchanged since we drive the
+  real cursor via SendInput).

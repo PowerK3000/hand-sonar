@@ -8,5 +8,6 @@ pillow==13.0.0
 pycaw==20260927
 pynput==1.8.2
 pystray==0.19.5
+pytest==9.1.1
 scipy==1.18.1
 sounddevice==0.5.6

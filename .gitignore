@@ -4,3 +4,4 @@ __pycache__/
 data/recordings/
 logs/
 logs_*.txt
+models/
