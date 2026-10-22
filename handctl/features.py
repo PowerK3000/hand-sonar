@@ -12,7 +12,7 @@ from dataclasses import dataclass
 
 import numpy as np
 
-from .hand import (FINGERS, INDEX_MCP, INDEX_TIP, MIDDLE_MCP, MIDDLE_TIP, PINKY_MCP, PINKY_TIP, RING_MCP,
+from .hand import (FINGERS, INDEX_MCP, INDEX_PIP, INDEX_TIP, MIDDLE_MCP, MIDDLE_TIP, PINKY_MCP, PINKY_PIP, RING_MCP,
                    THUMB_TIP, WRIST, HandFrame)
 
 PALM = (WRIST, INDEX_MCP, MIDDLE_MCP, RING_MCP, PINKY_MCP)
@@ -71,9 +71,13 @@ def finger_straightness(world: np.ndarray, chain: tuple[int, int, int, int]) -> 
 
 
 def finger_spread_deg(world: np.ndarray, rot: np.ndarray) -> float:
-    """Fan-out angle between index and pinky, measured in the palm plane (ignores curl)."""
-    a = (rot @ (world[INDEX_TIP] - world[INDEX_MCP]))[:2]
-    b = (rot @ (world[PINKY_TIP] - world[PINKY_MCP]))[:2]
+    """Fan-out angle between index and pinky, measured in the palm plane.
+
+    Uses the first bone (knuckle -> middle joint) only: whole-finger vectors of curled fingers
+    project to near-zero length in the palm plane and give meaningless angles.
+    """
+    a = (rot @ (world[INDEX_PIP] - world[INDEX_MCP]))[:2]
+    b = (rot @ (world[PINKY_PIP] - world[PINKY_MCP]))[:2]
     na, nb = np.linalg.norm(a), np.linalg.norm(b)
     if na < 1e-9 or nb < 1e-9:
         return 0.0

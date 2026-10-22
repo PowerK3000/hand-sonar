@@ -6,6 +6,7 @@ stale frames are dropped instead of queued, so latency never grows.
 
 from __future__ import annotations
 
+import os
 import threading
 import time
 from pathlib import Path
@@ -23,13 +24,17 @@ class TrackerError(RuntimeError):
 
 
 class Camera:
-    def __init__(self, index: int, width: int = 1280, height: int = 720, fps: int = 60) -> None:
+    def __init__(self, index: int, width: int = 1280, height: int = 720, fps: int = 30) -> None:
+        # Skip MSMF's hardware colour-transform probe: it adds seconds to camera open time.
+        os.environ.setdefault("OPENCV_VIDEOIO_MSMF_ENABLE_HW_TRANSFORMS", "0")
         import cv2  # imported lazily so tests and tooling don't need OpenCV loaded
         self._cv2 = cv2
-        # DirectShow opens most USB webcams fastest on Windows and honours FPS requests.
-        self._cap = cv2.VideoCapture(index, cv2.CAP_DSHOW)
+        # Media Foundation, not DirectShow: on Kayden's Sonix 0C45:64AB webcam DirectShow falls
+        # back to uncompressed YUY2 (8 fps at 720p); MSMF negotiates MJPG and delivers ~29 fps.
+        self._cap = cv2.VideoCapture(index, cv2.CAP_MSMF)
         if not self._cap.isOpened():
             raise TrackerError(f"cannot open camera {index} (plugged in? used by another app?)")
+        self._cap.set(cv2.CAP_PROP_FOURCC, cv2.VideoWriter_fourcc(*"MJPG"))  # before the size
         self._cap.set(cv2.CAP_PROP_FRAME_WIDTH, width)
         self._cap.set(cv2.CAP_PROP_FRAME_HEIGHT, height)
         self._cap.set(cv2.CAP_PROP_FPS, fps)
@@ -76,7 +81,8 @@ class Camera:
 class HandTracker:
     """Wraps MediaPipe HandLandmarker (VIDEO mode) and picks the configured hand."""
 
-    def __init__(self, model_path: Path, hand: str = "any", num_hands: int = 2) -> None:
+    def __init__(self, model_path: Path, hand: str = "any", num_hands: int = 1,
+                 process_width: int | None = None) -> None:
         if not model_path.is_file():
             raise TrackerError(f"hand model not found at {model_path}. Download it from {MODEL_URL}")
         import mediapipe as mp
@@ -90,11 +96,18 @@ class HandTracker:
             min_tracking_confidence=0.5)
         self._lm = HandLandmarker.create_from_options(opts)
         self.hand = hand
+        self.process_width = process_width
         self._last_ms = -1
 
     def process(self, t: float, bgr: np.ndarray) -> HandFrame | None:
+        # Landmarks come back normalised, so they're reported in full-frame pixels regardless
+        # of the downscale used for tracking.
+        h, w = bgr.shape[:2]
+        if self.process_width and bgr.shape[1] > self.process_width:
+            import cv2
+            f = self.process_width / bgr.shape[1]
+            bgr = cv2.resize(bgr, None, fx=f, fy=f, interpolation=cv2.INTER_AREA)
         rgb = np.ascontiguousarray(bgr[:, :, ::-1])
-        h, w = rgb.shape[:2]
         # MediaPipe requires strictly increasing timestamps in VIDEO mode.
         ms = max(int(t * 1000), self._last_ms + 1)
         self._last_ms = ms

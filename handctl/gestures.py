@@ -33,7 +33,7 @@ class LeftPinch:
         self.cfg = cfg
         self.state = "idle"          # idle | pressed | dragging
         self._t0 = 0.0
-        self._travel = 0.0           # hand lengths moved since the pinch closed
+        self._origin: np.ndarray | None = None  # palm position (px) when the pinch closed
 
     @property
     def busy(self) -> bool:
@@ -51,22 +51,23 @@ class LeftPinch:
         self.state = "idle"
         return [Action("up", "left")] if held else []
 
-    def update(self, f: HandFeatures | None, engaged: bool, palm_step: float,
-               other_busy: bool) -> list[Action]:
+    def update(self, f: HandFeatures | None, engaged: bool, other_busy: bool) -> list[Action]:
         if f is None or not engaged:
             return self.release()
         c, d = self.cfg.click, f.pinch_index
         if self.state == "idle":
             # Claim the pinch only if the thumb is nearer the index than the middle finger.
             if d < c.pinch_close and d < f.pinch_middle and not other_busy:
-                self.state, self._t0, self._travel = "pressed", f.t, 0.0
+                self.state, self._t0, self._origin = "pressed", f.t, f.palm_px.copy()
             return []
         if self.state == "pressed":
-            self._travel += palm_step
             if d > c.pinch_open:
                 self.state = "idle"
                 return [Action("click", "left")]
-            if (f.t - self._t0) * 1000 >= self.cfg.drag.start_after_ms or self._travel >= self.cfg.drag.start_move:
+            # Net displacement from where the pinch closed, not accumulated path: summing
+            # frame-to-frame tracker jitter turned real taps into drags.
+            moved = float(np.linalg.norm(f.palm_px - self._origin)) / f.hand_px
+            if (f.t - self._t0) * 1000 >= self.cfg.drag.start_after_ms or moved >= self.cfg.drag.start_move:
                 self.state = "dragging"
                 return [Action("down", "left")]
             return []

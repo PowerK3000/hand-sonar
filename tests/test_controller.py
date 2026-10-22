@@ -218,3 +218,37 @@ def test_paused_releases_and_ignores():
     acts = r.run(0.2, thumb_to="index")
     assert kinds(acts) == [("up", "left")]
     assert kinds(r.run(0.5, thumb_to=None) + r.run(0.12, thumb_to="index")) == []
+
+
+def test_tap_with_tracker_jitter_is_click_not_drag():
+    # Live bug: summed frame-to-frame jitter crossed the drag-move threshold during real taps.
+    r = Rig()
+    rng = np.random.default_rng(5)
+    r.run(0.3, thumb_to=None)
+    acts = []
+    for _ in range(round(0.25 * FPS)):
+        jitter = tuple(np.array([0, 0, 0.5]) + rng.normal(0, 0.002, 3))
+        acts += r.run(1 / FPS, thumb_to="index", position=jitter)
+    acts += r.run(0.3, thumb_to=None)
+    assert kinds(acts) == [("click", "left")]
+
+
+def test_flickering_handedness_label_is_latched():
+    # Live bug: MediaPipe flipped left/right 75 times on one hand, flipping scroll direction.
+    r = Rig()
+    hand = synth.anatomical_hand(curl={**POINT, "index": 0.15})
+    out = []
+    for i in range(60):
+        r.t += 1 / FPS
+        f = synth.frame(r.t, hand)
+        if i % 3 == 2:  # every third frame mislabelled; the first frame is correct
+            f = replace(f, handedness="left")
+        out += r.ctl.step(f, r.t)
+        assert r.ctl.last_features.handedness == "right"
+
+
+def test_right_click_curl_does_not_scroll():
+    r = Rig()
+    r.run(0.3, curl={**POINT, "middle": 0.1}, thumb_to=None)
+    acts = r.run(0.15, curl={**POINT, "middle": 0.6}, thumb_to="middle") + r.run(0.3, thumb_to=None)
+    assert not [a for a in acts if a.kind == "scroll"]

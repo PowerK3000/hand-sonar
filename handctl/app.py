@@ -83,7 +83,8 @@ class HandControlApp:
     def _worker(self) -> None:
         camera = tracker = None
         try:
-            tracker = HandTracker(paths.resolve(self.cfg.app.model_path), self.cfg.app.hand)
+            tracker = HandTracker(paths.resolve(self.cfg.app.model_path), self.cfg.app.hand,
+                                  self.cfg.app.num_hands, self.cfg.app.process_width)
             camera = Camera(self.cfg.app.camera_index)
             log.info("camera %dx%d @ %.0f fps", camera.width, camera.height, camera.fps)
             while not self._stop.is_set():

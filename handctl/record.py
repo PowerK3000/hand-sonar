@@ -89,7 +89,8 @@ def main(argv: list[str] | None = None) -> int:
     if not steps:
         p.error(f"no steps match {args.only}; labels: {[s.label for s in PROTOCOL]}")
     try:
-        tracker = HandTracker(paths.resolve(cfg.app.model_path), "any")
+        tracker = HandTracker(paths.resolve(cfg.app.model_path), "any", cfg.app.num_hands,
+                              cfg.app.process_width)
         camera = Camera(cfg.app.camera_index)
     except TrackerError as e:
         print(f"error: {e}", file=sys.stderr)

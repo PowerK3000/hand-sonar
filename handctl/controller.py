@@ -22,6 +22,27 @@ from .pointer import Pointer
 # A gap longer than this restarts filters and the pointer, so a hand re-entering the frame
 # doesn't produce one huge jump from where it left.
 TRACK_GAP_S = 0.25
+# MediaPipe's left/right label flickers frame to frame on one hand (75 flips in 2.5 min on
+# Kayden's first live test); the label only changes after this many consecutive frames.
+HANDEDNESS_SWITCH_FRAMES = 15
+
+
+class HandednessLatch:
+    def __init__(self) -> None:
+        self.current: str | None = None
+        self._streak = 0
+
+    def reset(self) -> None:
+        self.current, self._streak = None, 0
+
+    def __call__(self, label: str) -> str:
+        if self.current is None or label == self.current:
+            self.current, self._streak = label, 0
+        else:
+            self._streak += 1
+            if self._streak >= HANDEDNESS_SWITCH_FRAMES:
+                self.current, self._streak = label, 0
+        return self.current
 
 
 class Controller:
@@ -35,6 +56,7 @@ class Controller:
         self.right = RightPinch(cfg)
         self.scroll = Scroll(cfg)
         self.wake = Wake(cfg)
+        self._handedness = HandednessLatch()
         self._last_t: float | None = None
         self.last_features: HandFeatures | None = None
         self.dropped_degenerate = 0
@@ -58,6 +80,11 @@ class Controller:
         """Advance one camera frame (frame=None when no hand is visible)."""
         f: HandFeatures | None = None
         if frame is not None:
+            if self._last_t is not None and frame.t - self._last_t > TRACK_GAP_S:
+                self._handedness.reset()
+            side = self._handedness(frame.handedness)
+            if side != frame.handedness:
+                frame = replace(frame, handedness=side)
             try:
                 raw = compute(frame)
             except DegenerateHand:
@@ -72,7 +99,7 @@ class Controller:
         engaged = self.gate.engaged(t, f.score if f is not None else None)
 
         actions: list[Action] = []
-        actions += self.left.update(f, engaged, self.pointer.last_step, other_busy=self.right.busy)
+        actions += self.left.update(f, engaged, other_busy=self.right.busy)
         actions += self.right.update(f, engaged, other_busy=self.left.busy)
         actions += self.scroll.update(f, engaged, t, blocked=self.left.busy or self.right.busy)
 

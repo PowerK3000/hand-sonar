@@ -20,6 +20,8 @@ class AppCfg:
     camera_index: int
     model_path: str
     hand: str
+    num_hands: int
+    process_width: int
     pause_hotkey: str
 
 
@@ -139,6 +141,8 @@ def _check(cond: bool, msg: str) -> None:
 def validate(c: Config) -> Config:
     _check(c.app.hand in ("left", "right", "any"), "[app] hand must be left/right/any")
     _check(c.app.camera_index >= 0, "[app] camera_index must be >= 0")
+    _check(c.app.num_hands in (1, 2), "[app] num_hands must be 1 or 2")
+    _check(160 <= c.app.process_width <= 1920, "[app] process_width must be in [160, 1920]")
     _check(0 <= c.engagement.min_confidence <= 1, "[engagement] min_confidence must be in [0,1]")
     _check(c.engagement.reengage_after_ms >= 0, "[engagement] reengage_after_ms must be >= 0")
     _check(c.filter.min_cutoff_hz > 0 and c.filter.d_cutoff_hz > 0 and c.filter.beta >= 0,
