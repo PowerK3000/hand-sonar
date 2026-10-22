@@ -1,0 +1,25 @@
+{
+  "out": "Sceptre E22 (NVIDIA High Definition Audio)",
+  "in": "Microphone (YU8)",
+  "amp": 0.1,
+  "results": [
+    {
+      "freq_hz": 1000.0,
+      "level_dbfs": -40.2,
+      "snr_db": 27.7,
+      "snr_local_db": 18.9
+    },
+    {
+      "freq_hz": 8000.0,
+      "level_dbfs": -45.0,
+      "snr_db": 61.8,
+      "snr_local_db": 29.7
+    },
+    {
+      "freq_hz": 15000.0,
+      "level_dbfs": -123.8,
+      "snr_db": -3.6,
+      "snr_local_db": -1.7
+    }
+  ]
+}

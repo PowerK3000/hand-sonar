@@ -1,0 +1,25 @@
+{
+  "out": "Speakers (YU8)",
+  "in": "Microphone (YU8)",
+  "amp": 0.1,
+  "results": [
+    {
+      "freq_hz": 1000.0,
+      "level_dbfs": -110.2,
+      "snr_db": -38.0,
+      "snr_local_db": -0.4
+    },
+    {
+      "freq_hz": 8000.0,
+      "level_dbfs": -127.0,
+      "snr_db": -22.2,
+      "snr_local_db": -0.4
+    },
+    {
+      "freq_hz": 15000.0,
+      "level_dbfs": -135.4,
+      "snr_db": -14.9,
+      "snr_local_db": -0.6
+    }
+  ]
+}

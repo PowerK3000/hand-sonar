@@ -1,0 +1,97 @@
+{
+  "out": "Sceptre E22 (NVIDIA High Definition Audio)",
+  "in": "Microphone (YU8)",
+  "amp": 0.1,
+  "results": [
+    {
+      "freq_hz": 8000.0,
+      "level_dbfs": -57.4,
+      "snr_db": 92.5,
+      "snr_local_db": 30.8
+    },
+    {
+      "freq_hz": 8500.0,
+      "level_dbfs": -47.0,
+      "snr_db": 99.7,
+      "snr_local_db": 30.4
+    },
+    {
+      "freq_hz": 9000.0,
+      "level_dbfs": -56.0,
+      "snr_db": 103.1,
+      "snr_local_db": 29.6
+    },
+    {
+      "freq_hz": 9500.0,
+      "level_dbfs": -72.0,
+      "snr_db": 75.6,
+      "snr_local_db": 27.6
+    },
+    {
+      "freq_hz": 10000.0,
+      "level_dbfs": -87.5,
+      "snr_db": 66.3,
+      "snr_local_db": 26.0
+    },
+    {
+      "freq_hz": 10500.0,
+      "level_dbfs": -89.3,
+      "snr_db": 52.0,
+      "snr_local_db": 25.9
+    },
+    {
+      "freq_hz": 11000.0,
+      "level_dbfs": -88.6,
+      "snr_db": 62.4,
+      "snr_local_db": 23.8
+    },
+    {
+      "freq_hz": 11500.0,
+      "level_dbfs": -112.4,
+      "snr_db": 27.5,
+      "snr_local_db": 9.7
+    },
+    {
+      "freq_hz": 12000.0,
+      "level_dbfs": -83.6,
+      "snr_db": 52.2,
+      "snr_local_db": 24.9
+    },
+    {
+      "freq_hz": 12500.0,
+      "level_dbfs": -90.8,
+      "snr_db": 41.9,
+      "snr_local_db": 24.7
+    },
+    {
+      "freq_hz": 13000.0,
+      "level_dbfs": -125.0,
+      "snr_db": 20.9,
+      "snr_local_db": 6.3
+    },
+    {
+      "freq_hz": 13500.0,
+      "level_dbfs": -140.8,
+      "snr_db": 0.2,
+      "snr_local_db": 0.5
+    },
+    {
+      "freq_hz": 14000.0,
+      "level_dbfs": -130.0,
+      "snr_db": 21.2,
+      "snr_local_db": 0.9
+    },
+    {
+      "freq_hz": 14500.0,
+      "level_dbfs": -123.9,
+      "snr_db": 18.0,
+      "snr_local_db": 2.0
+    },
+    {
+      "freq_hz": 15000.0,
+      "level_dbfs": -134.5,
+      "snr_db": 15.6,
+      "snr_local_db": 0.5
+    }
+  ]
+}

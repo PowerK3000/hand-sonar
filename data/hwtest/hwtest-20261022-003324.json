@@ -1,0 +1,25 @@
+{
+  "out": "Headset Earphone (G435 Wireless Gaming Headset)",
+  "in": "Microphone (YU8)",
+  "amp": 0.1,
+  "results": [
+    {
+      "freq_hz": 1000.0,
+      "level_dbfs": -124.1,
+      "snr_db": -2.9,
+      "snr_local_db": -0.3
+    },
+    {
+      "freq_hz": 8000.0,
+      "level_dbfs": -170.6,
+      "snr_db": -36.3,
+      "snr_local_db": 0.8
+    },
+    {
+      "freq_hz": 15000.0,
+      "level_dbfs": -236.8,
+      "snr_db": -101.7,
+      "snr_local_db": 0.0
+    }
+  ]
+}
