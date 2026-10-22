@@ -1,0 +1,85 @@
+{
+  "out": "Headset Earphone (G435 Wireless Gaming Headset)",
+  "in": "Microphone (G435 Wireless Gaming Headset)",
+  "amp": 0.03,
+  "results": [
+    {
+      "freq_hz": 16000.0,
+      "level_dbfs": -126.6,
+      "snr_db": 1.4,
+      "snr_local_db": 0.1
+    },
+    {
+      "freq_hz": 16500.0,
+      "level_dbfs": -128.3,
+      "snr_db": -2.1,
+      "snr_local_db": -1.0
+    },
+    {
+      "freq_hz": 17000.0,
+      "level_dbfs": -126.9,
+      "snr_db": -3.8,
+      "snr_local_db": 0.2
+    },
+    {
+      "freq_hz": 17500.0,
+      "level_dbfs": -125.5,
+      "snr_db": 0.5,
+      "snr_local_db": 2.4
+    },
+    {
+      "freq_hz": 18000.0,
+      "level_dbfs": -126.9,
+      "snr_db": -1.6,
+      "snr_local_db": -0.4
+    },
+    {
+      "freq_hz": 18500.0,
+      "level_dbfs": -126.5,
+      "snr_db": 2.3,
+      "snr_local_db": 0.7
+    },
+    {
+      "freq_hz": 19000.0,
+      "level_dbfs": -125.8,
+      "snr_db": 2.3,
+      "snr_local_db": 1.8
+    },
+    {
+      "freq_hz": 19500.0,
+      "level_dbfs": -127.0,
+      "snr_db": 0.6,
+      "snr_local_db": 0.1
+    },
+    {
+      "freq_hz": 20000.0,
+      "level_dbfs": -125.0,
+      "snr_db": 1.7,
+      "snr_local_db": 1.8
+    },
+    {
+      "freq_hz": 20500.0,
+      "level_dbfs": -128.1,
+      "snr_db": -0.5,
+      "snr_local_db": -0.4
+    },
+    {
+      "freq_hz": 21000.0,
+      "level_dbfs": -125.8,
+      "snr_db": -1.4,
+      "snr_local_db": 1.1
+    },
+    {
+      "freq_hz": 21500.0,
+      "level_dbfs": -132.4,
+      "snr_db": -4.5,
+      "snr_local_db": -2.8
+    },
+    {
+      "freq_hz": 22000.0,
+      "level_dbfs": -124.3,
+      "snr_db": 1.8,
+      "snr_local_db": 2.5
+    }
+  ]
+}
