@@ -75,3 +75,15 @@ tracker, hotkey, app (tray), autostart, record, replay.
 - Scroll axis sign (`vertical_axis`), all thresholds.
 - ipad-pointer integration not started (it should keep working unchanged since we drive the
   real cursor via SendInput).
+
+## Findings from live data (2026-10-22)
+- Webcam: Sonix 0C45:64AB, 720p30 via MSMF only. Tracking 25 fps (num_hands=1, 640 px).
+- Session s1 (full protocol) and s2 (click/right/drag after re-aiming + light):
+  **thumb-to-finger taps are not observable from an above/behind-the-hand camera.**
+  MediaPipe 3D never shows contact at real taps (s2: 0.21-0.40 hand lengths at every tap);
+  2D image overlap does (0.02-0.04) but the same overlap happens between taps (p5 0.04).
+  Best tap detector on s2 + s1 negatives: any setting that catches taps produces more false
+  clicks than hits. Thresholds can't fix missing signal.
+- Options: (a) change click to a gesture visible from above (fingertip "press" like a mouse
+  button), (b) camera from the side of the hand so the thumb gap is in profile, (c) palm
+  facing the camera (rejected: gorilla arm).
