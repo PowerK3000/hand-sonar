@@ -18,6 +18,22 @@ class TapModelError(RuntimeError):
     pass
 
 
+class SoftVote:
+    """Average of member models' class probabilities. Members disagree usefully: boosted trees
+    were best at left taps, the linear/MLP models at right taps (tools/model_bench.py)."""
+
+    def __init__(self, members) -> None:
+        self.members = members
+
+    def fit(self, X, y) -> "SoftVote":
+        for m in self.members:
+            m.fit(X, y)
+        return self
+
+    def predict_proba(self, X):
+        return sum(m.predict_proba(X) for m in self.members) / len(self.members)
+
+
 @dataclass(frozen=True)
 class TapModelInfo:
     feature_version: int
@@ -44,7 +60,7 @@ class TapDetector:
         self.model, self.info = model, info
         self.thresholds = {"left": left_threshold, "right": right_threshold}
         self.refractory_s = refractory_s
-        self._buf = WindowBuffer(info.window_frames)
+        self._buf = WindowBuffer()
         self._last_fire = -1e9
         self._armed = {"left": True, "right": True}
         self.last_probs: dict[str, float] = {"left": 0.0, "right": 0.0}
@@ -85,5 +101,8 @@ def from_config(cfg) -> "TapDetector | None":
     from . import paths
     if cfg.taps.mode != "model":
         return None
+    # One prediction per camera frame: thread fan-out costs more than it saves (42 -> 26 ms).
+    from threadpoolctl import threadpool_limits
+    threadpool_limits(1)
     model, info = load_bundle(paths.resolve(cfg.taps.model_path))
     return TapDetector(model, info, cfg.taps.left_threshold, cfg.taps.right_threshold, cfg.taps.refractory_s)

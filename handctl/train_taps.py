@@ -71,8 +71,9 @@ def build(session_dirs: list[Path]):
                 continue
             if len(X) < 3 * WINDOW_FRAMES:
                 continue
-            F = windows(X)
-            tw = t[WINDOW_FRAMES - 1:]
+            tw, F = windows(t, X)
+            if not len(F):
+                continue
             y = np.zeros(len(F), int)
             taps: list[float] = []
             if label in TAP_CLASSES:
@@ -89,9 +90,22 @@ def build(session_dirs: list[Path]):
 
 
 def make_model():
+    """Chosen by tools/model_bench.py on held-out t1 for accuracy AND single-frame latency
+    (the live loop predicts once per camera frame on an old CPU): left 12/16, right 16/17,
+    0 false triggers, ~9 ms/frame."""
     from sklearn.ensemble import HistGradientBoostingClassifier
-    return HistGradientBoostingClassifier(max_iter=400, learning_rate=0.06, class_weight="balanced",
-                                          random_state=0)
+    from sklearn.linear_model import LogisticRegression
+    from sklearn.neural_network import MLPClassifier
+    from sklearn.pipeline import make_pipeline
+    from sklearn.preprocessing import StandardScaler
+    from .tap_model import SoftVote
+    return SoftVote([
+        HistGradientBoostingClassifier(max_iter=120, learning_rate=0.12, max_depth=6, class_weight="balanced",
+                                       random_state=0),
+        make_pipeline(StandardScaler(), MLPClassifier((64,), alpha=1e-2, max_iter=600, early_stopping=True,
+                                                      random_state=0)),
+        make_pipeline(StandardScaler(), LogisticRegression(C=0.05, class_weight="balanced", max_iter=3000)),
+    ])
 
 
 def main(argv: list[str] | None = None) -> int:

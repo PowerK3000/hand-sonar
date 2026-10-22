@@ -19,8 +19,8 @@ pause_hotkey = "ctrl+alt+h"
 #   "pinch": thumb-finger distance thresholds ([gestures.click] etc.); needs a clear view.
 mode = "model"
 model_path = "models/tap_model.joblib"
-left_threshold = 0.7              # held-out t1: left 16/16, 0 false in rest/typing/cursor/face
-right_threshold = 0.5             # held-out t1: right 12/17
+left_threshold = 0.7              # held-out t1 (ensemble): left 12/16, right 16/17, 0 false triggers
+right_threshold = 0.4
 refractory_s = 0.6                # minimum time between clicks (one tap can't double-click)
 rewind_s = 0.3                    # the model recognises a tap ~0.1-0.3 s late: undo cursor drift since then
 
