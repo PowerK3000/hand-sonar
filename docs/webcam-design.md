@@ -97,3 +97,14 @@ frame, 15 joint flexion angles) -> 0.4 s window summaries -> gradient-boosted cl
   right 49% (42%), vs base rates of 3.4% / 1.8%. **There is real signal in whole-hand motion**;
   44 taps is just far too little data, and the camera must stay put.
 - Next: fixed camera, ~40 taps/min per gesture for a few minutes, negatives, leave-one-session-out.
+
+## Live result of the personal tap model (2026-10-22)
+- t1 training session (7.5 min, 84 taps): held-out last-40% of the SAME session scored
+  left 12/16, right 16/17, 0 false - but that split shares posture/lighting/position.
+- Live dry run (new sitting, 16 fps): 0 clicks; max confidence 0.28 left / 0.33 right.
+- Replaying t1 through the exact live detector (26 and 13 fps) fires strongly, so the live
+  path is correct: **the model does not generalise across sittings** (same as s1 -> s2).
+- Wake (spread palm) fired 14x falsely in the live run: not usable as-is.
+- Next options: (a) camera beside the hand so thumb contact is visible (geometry works
+  without ML); (b) several training sessions across sittings/positions, evaluated
+  leave-one-session-out, which is the only honest generalisation test.
