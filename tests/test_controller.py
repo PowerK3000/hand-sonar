@@ -10,7 +10,8 @@ from handctl.engagement import EngagementGate
 from tests import synth
 
 CFG = config.load(Path(__file__).resolve().parents[1] / "config" / "gestures.toml")
-CFG = replace(CFG, taps=replace(CFG.taps, mode="pinch"))   # threshold-pinch behaviour under test
+CFG = replace(CFG, taps=replace(CFG.taps, mode="pinch"),    # threshold-pinch behaviour under test
+              wake=replace(CFG.wake, enabled=True))
 FPS = 60.0
 POINT = {"index": 0.1, "middle": 0.95, "ring": 0.95, "pinky": 0.95}   # index out, rest curled
 OPEN = {"index": 0.0, "middle": 0.0, "ring": 0.0, "pinky": 0.0}
@@ -253,3 +254,9 @@ def test_right_click_curl_does_not_scroll():
     r.run(0.3, curl={**POINT, "middle": 0.1}, thumb_to=None)
     acts = r.run(0.15, curl={**POINT, "middle": 0.6}, thumb_to="middle") + r.run(0.3, thumb_to=None)
     assert not [a for a in acts if a.kind == "scroll"]
+
+
+def test_wake_disabled_never_fires():
+    cfg = replace(CFG, wake=replace(CFG.wake, enabled=False))
+    r = Rig(cfg)
+    assert kinds(r.run(2.0, curl=OPEN, spread_deg=40)) == []

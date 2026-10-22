@@ -95,6 +95,7 @@ class ScrollCfg:
 
 @dataclass(frozen=True)
 class WakeCfg:
+    enabled: bool
     hold_ms: float
     max_speed_hands_per_s: float
     min_spread_deg: float

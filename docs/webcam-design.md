@@ -108,3 +108,15 @@ frame, 15 joint flexion angles) -> 0.4 s window summaries -> gradient-boosted cl
 - Next options: (a) camera beside the hand so thumb contact is visible (geometry works
   without ML); (b) several training sessions across sittings/positions, evaluated
   leave-one-session-out, which is the only honest generalisation test.
+
+## Personal-hand-model experiment (Kayden's "scan my hand, model it" idea)
+`tools/personal_model_experiment.py` on t1: personal bone lengths (95th pct of projected
+length over many orientations) + per-bone depth from known length (Taylor reconstruction).
+- Separability (taps below the non-tap 5th percentile):
+  click: generic 3D 36%, personal 3D 17%, 2D 40%; right: generic 45%, personal 71%, **2D 95%**.
+- The simple closed-form version is worse for left taps: 2D keypoint noise of a few px on
+  ~30 px bones blows up in sqrt(L^2 - l^2) depth, and depth signs from MediaPipe are noisy.
+  A full kinematic fit (personal skeleton + joint limits + temporal prior) is the proper
+  version; multi-day build, uncertain payoff for left taps.
+- Strong side result: **thumb-to-middle contact is 95% separable in plain 2D** from this
+  camera. Thumb-to-index is not (the thumb naturally lies across the index from above).

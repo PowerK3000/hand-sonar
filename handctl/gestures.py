@@ -181,7 +181,7 @@ class Wake:
 
     def update(self, f: HandFeatures | None, engaged: bool, palm_speed: float) -> list[Action]:
         w = self.cfg.wake
-        if f is None or not engaged or not open_palm(f, self.cfg) or palm_speed > w.max_speed_hands_per_s:
+        if not w.enabled or f is None or not engaged or not open_palm(f, self.cfg) or palm_speed > w.max_speed_hands_per_s:
             self._since, self._fired = None, False
             return []
         if self._since is None:

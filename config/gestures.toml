@@ -88,6 +88,7 @@ momentum_min_wheel_per_s = 60     # below this speed coasting stops
 [gestures.wake]
 action = "wake"                   # show the pointer overlay / wake the screen
 pose = "open_palm_still"             # fingers straight AND spread wide (a resting hand never is)
+enabled = false                   # off: fired 14x falsely in the first live run (2026-10-22); needs redesign
 hold_ms = 800
 max_speed_hands_per_s = 0.15
 min_spread_deg = 25

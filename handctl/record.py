@@ -58,7 +58,17 @@ TRAIN_PROTOCOL = [
     Step("cursor", 45, "Move your whole hand around as if steering the cursor. No taps."),
     Step("face", 40, "Normal non-command stuff: touch face, scratch head, grab a drink, reach around."),
 ]
-PROTOCOLS = {"tuning": PROTOCOL, "train": TRAIN_PROTOCOL}
+# Short sitting for multi-day collection (~3.5 min). Vary posture/hand position/light between
+# sittings on purpose: generalising across sittings is the whole point.
+SESSION_PROTOCOL = [
+    Step("click", 45, "On each BEAT: quick tap thumb to INDEX tip, the way you'd naturally click.", 1.4),
+    Step("right_click", 45, "On each BEAT: quick tap thumb to MIDDLE tip.", 1.4),
+    Step("rest", 30, "Rest your hand naturally. Small fidgets are fine."),
+    Step("typing", 30, "Type normally (anything)."),
+    Step("cursor", 30, "Move your whole hand around as if steering the cursor. No taps."),
+    Step("face", 30, "Normal non-command stuff: touch face, scratch head, grab a drink, reach around."),
+]
+PROTOCOLS = {"tuning": PROTOCOL, "train": TRAIN_PROTOCOL, "session": SESSION_PROTOCOL}
 
 
 def _draw(cv2, img, frame, step: Step, remaining: float, beat_on: bool, idx: int, total: int):
@@ -94,11 +104,13 @@ def _save(path: Path, step: Step, rows: list, beats: list[float], meta: dict) ->
 
 def main(argv: list[str] | None = None) -> int:
     p = argparse.ArgumentParser(description=__doc__, formatter_class=argparse.RawDescriptionHelpFormatter)
-    p.add_argument("--name", required=True)
+    p.add_argument("--name", default=None, help="session folder name (default: t-YYYYMMDD-HHMM)")
     p.add_argument("--position", default="", help="free-text note: where the hand/camera is")
     p.add_argument("--only", nargs="*", help="record just these step labels")
     p.add_argument("--protocol", choices=sorted(PROTOCOLS), default="tuning")
     args = p.parse_args(argv)
+    if args.name is None:
+        args.name = time.strftime("t-%Y%m%d-%H%M")
     import cv2
     cfg = config.load(paths.CONFIG)
     protocol = PROTOCOLS[args.protocol]
