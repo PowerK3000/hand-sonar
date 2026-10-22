@@ -1,3 +1,5 @@
+from dataclasses import replace
+
 from handctl import config, paths, replay
 from handctl.record import Step, _save
 from tests import synth
@@ -20,6 +22,7 @@ def _record(tmp_path, label, script, beats):
 
 def test_replay_counts_hits_and_false_triggers(tmp_path):
     cfg = config.load(paths.CONFIG)
+    cfg = replace(cfg, taps=replace(cfg.taps, mode="pinch"))
     script, beats = [(0.5, {})], []
     for k in range(4):
         beats.append(0.5 + k * 1.5)
@@ -32,6 +35,7 @@ def test_replay_counts_hits_and_false_triggers(tmp_path):
 
 def test_replay_flags_clicks_during_non_command_step(tmp_path):
     cfg = config.load(paths.CONFIG)
+    cfg = replace(cfg, taps=replace(cfg.taps, mode="pinch"))
     path = _record(tmp_path, "rest", [(0.5, {}), (0.12, {"thumb_to": "index"}), (1.0, {}), (0.5, None)], [])
     r = replay.replay_file(path, cfg)
     assert r["false"] == {("click", "left"): 1}

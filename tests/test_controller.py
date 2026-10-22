@@ -10,6 +10,7 @@ from handctl.engagement import EngagementGate
 from tests import synth
 
 CFG = config.load(Path(__file__).resolve().parents[1] / "config" / "gestures.toml")
+CFG = replace(CFG, taps=replace(CFG.taps, mode="pinch"))   # threshold-pinch behaviour under test
 FPS = 60.0
 POINT = {"index": 0.1, "middle": 0.95, "ring": 0.95, "pinky": 0.95}   # index out, rest curled
 OPEN = {"index": 0.0, "middle": 0.0, "ring": 0.0, "pinky": 0.0}

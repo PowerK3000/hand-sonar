@@ -11,6 +11,19 @@ num_hands = 1                     # 1 = fastest: with 2, the hand detector re-ru
 process_width = 640               # frames are downscaled to this width before tracking (720p -> 640x360: 25 vs 15 fps on this PC)
 pause_hotkey = "ctrl+alt+h"
 
+[taps]
+# How clicks are detected.
+#   "model": personal motion model trained on your recordings (python -m handctl.train_taps).
+#            Thumb contact is often hidden from an overhead camera; the model reads the motion
+#            of the whole visible hand instead. Drag is not supported in this mode yet.
+#   "pinch": thumb-finger distance thresholds ([gestures.click] etc.); needs a clear view.
+mode = "model"
+model_path = "models/tap_model.joblib"
+left_threshold = 0.7              # held-out t1: left 16/16, 0 false in rest/typing/cursor/face
+right_threshold = 0.5             # held-out t1: right 12/17
+refractory_s = 0.6                # minimum time between clicks (one tap can't double-click)
+rewind_s = 0.3                    # the model recognises a tap ~0.1-0.3 s late: undo cursor drift since then
+
 [engagement]
 # Control is only live while engaged; stops typing/reaching from firing actions.
 disengage_on_keyboard = true      # any physical key press disengages instantly

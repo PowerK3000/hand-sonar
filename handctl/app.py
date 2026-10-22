@@ -19,6 +19,7 @@ from .engagement import EngagementGate, InputActivityHook
 from .hotkey import GlobalHotkey, HotkeyError
 from .output import OutputError, WindowsOutput
 from .tracker import MODEL_URL, Camera, HandTracker
+from .tap_model import TapModelError, from_config as taps_from_config
 
 log = logging.getLogger("handctl")
 
@@ -39,7 +40,7 @@ class HandControlApp:
     def __init__(self, cfg: config.Config) -> None:
         self.cfg = cfg
         self.gate = EngagementGate(cfg.engagement)
-        self.controller = Controller(cfg, self.gate)
+        self.controller = Controller(cfg, self.gate, taps_from_config(cfg))
         self.output = WindowsOutput()
         self.hooks = InputActivityHook(self.gate)
         self.hotkey = GlobalHotkey(cfg.app.pause_hotkey, self.toggle_pause)
@@ -156,7 +157,12 @@ def main() -> int:
     if not model.is_file():
         log.error("hand model not found at %s. Download it from %s", model, MODEL_URL)
         return 2
-    return HandControlApp(cfg).run()
+    try:
+        app = HandControlApp(cfg)
+    except TapModelError as e:
+        log.error("%s", e)
+        return 2
+    return app.run()
 
 
 if __name__ == "__main__":

@@ -6,6 +6,7 @@ hands in tests.
 
 from __future__ import annotations
 
+from collections import deque
 from dataclasses import replace
 
 import numpy as np
@@ -18,6 +19,7 @@ from .gestures import LeftPinch, RightPinch, Scroll, Wake
 from .hand import HandFrame
 from .one_euro import OneEuroFilter
 from .pointer import Pointer
+from .tap_model import TapDetector
 
 # A gap longer than this restarts filters and the pointer, so a hand re-entering the frame
 # doesn't produce one huge jump from where it left.
@@ -46,8 +48,12 @@ class HandednessLatch:
 
 
 class Controller:
-    def __init__(self, cfg: Config, gate: EngagementGate) -> None:
+    def __init__(self, cfg: Config, gate: EngagementGate, taps: TapDetector | None = None) -> None:
+        if cfg.taps.mode == "model" and taps is None:
+            raise ValueError("[taps] mode = model needs a TapDetector (train one with handctl.train_taps)")
         self.cfg, self.gate = cfg, gate
+        self.taps = taps if cfg.taps.mode == "model" else None
+        self._moves: deque[tuple[float, float, float]] = deque()   # (t, dx, dy) for click rewind
         fc = cfg.filter
         self._shape_filter = OneEuroFilter(fc.min_cutoff_hz, fc.beta, fc.d_cutoff_hz)
         self._palm_filter = OneEuroFilter(fc.min_cutoff_hz, fc.beta, fc.d_cutoff_hz)
@@ -99,20 +105,38 @@ class Controller:
         engaged = self.gate.engaged(t, f.score if f is not None else None)
 
         actions: list[Action] = []
-        actions += self.left.update(f, engaged, other_busy=self.right.busy)
-        actions += self.right.update(f, engaged, other_busy=self.left.busy)
+        if self.taps is not None:
+            tapped = self.taps.update(frame if f is not None else None)
+            if tapped and engaged and not self.scroll.active:
+                actions += self._rewind(t)
+                actions.append(Action("click", tapped))
+        else:
+            actions += self.left.update(f, engaged, other_busy=self.right.busy)
+            actions += self.right.update(f, engaged, other_busy=self.left.busy)
         actions += self.scroll.update(f, engaged, t, blocked=self.left.busy or self.right.busy)
 
         if f is None:
             self.pointer.reset()
         else:
-            frozen = (not engaged or self.left.freezes_pointer(f) or self.right.busy
-                      or self.scroll.active)
+            frozen = not engaged or self.right.busy or self.scroll.active
+            if self.taps is None:
+                frozen = frozen or self.left.freezes_pointer(f)
             dx, dy = self.pointer.update(f.palm_px, f.hand_px, f.t, frozen)
             if dx or dy:
                 actions.append(Action("move", dx=dx, dy=dy))
+                self._moves.append((t, dx, dy))
+        while self._moves and t - self._moves[0][0] > max(self.cfg.taps.rewind_s, 0.0):
+            self._moves.popleft()
         actions += self.wake.update(f, engaged, self.pointer.last_speed)
         return actions
+
+    def _rewind(self, t: float) -> list[Action]:
+        """Undo cursor motion from the last rewind_s: the tap began before the model saw it,
+        and the hand drifts while tapping, so click where the cursor was when the tap started."""
+        dx = sum(m[1] for m in self._moves if t - m[0] <= self.cfg.taps.rewind_s)
+        dy = sum(m[2] for m in self._moves if t - m[0] <= self.cfg.taps.rewind_s)
+        self._moves.clear()
+        return [Action("move", dx=-dx, dy=-dy)] if (dx or dy) else []
 
     def release(self) -> list[Action]:
         """Drop everything held (pause/exit)."""

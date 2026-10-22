@@ -45,6 +45,21 @@ PROTOCOL = [
     Step("face", 12, "Do normal non-command stuff: touch face, scratch head, grab a drink."),
 ]
 
+# Training set for the personal motion model: many fast reps, camera untouched, plus
+# non-command activity so the model learns what not to fire on (~7.5 min).
+TRAIN_PROTOCOL = [
+    Step("click", 60, "On each BEAT: quick tap thumb to INDEX tip. Hand resting where you'd use it.", 1.4),
+    Step("right_click", 60, "On each BEAT: quick tap thumb to MIDDLE tip.", 1.4),
+    Step("press_index", 45, "On each BEAT: press INDEX fingertip down a little, like clicking a mouse button.", 1.4),
+    Step("press_middle", 45, "On each BEAT: press MIDDLE fingertip down, like a right mouse button.", 1.4),
+    Step("drag", 40, "On each BEAT: pinch thumb+index, slide hand sideways, release.", 2.5),
+    Step("rest", 45, "Rest your hand naturally. Small fidgets are fine."),
+    Step("typing", 45, "Type normally (anything)."),
+    Step("cursor", 45, "Move your whole hand around as if steering the cursor. No taps."),
+    Step("face", 40, "Normal non-command stuff: touch face, scratch head, grab a drink, reach around."),
+]
+PROTOCOLS = {"tuning": PROTOCOL, "train": TRAIN_PROTOCOL}
+
 
 def _draw(cv2, img, frame, step: Step, remaining: float, beat_on: bool, idx: int, total: int):
     if frame is not None:
@@ -82,12 +97,14 @@ def main(argv: list[str] | None = None) -> int:
     p.add_argument("--name", required=True)
     p.add_argument("--position", default="", help="free-text note: where the hand/camera is")
     p.add_argument("--only", nargs="*", help="record just these step labels")
+    p.add_argument("--protocol", choices=sorted(PROTOCOLS), default="tuning")
     args = p.parse_args(argv)
     import cv2
     cfg = config.load(paths.CONFIG)
-    steps = [s for s in PROTOCOL if not args.only or s.label in args.only]
+    protocol = PROTOCOLS[args.protocol]
+    steps = [s for s in protocol if not args.only or s.label in args.only]
     if not steps:
-        p.error(f"no steps match {args.only}; labels: {[s.label for s in PROTOCOL]}")
+        p.error(f"no steps match {args.only}; labels: {[s.label for s in protocol]}")
     try:
         tracker = HandTracker(paths.resolve(cfg.app.model_path), "any", cfg.app.num_hands,
                               cfg.app.process_width)

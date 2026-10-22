@@ -17,6 +17,7 @@ from .controller import Controller
 from .engagement import EngagementGate, InputActivityHook
 from .gestures import index_pointing, open_palm
 from .tracker import Camera, HandTracker, TrackerError
+from .tap_model import TapModelError, from_config as taps_from_config
 
 BONES = [(0, 1), (1, 2), (2, 3), (3, 4), (0, 5), (5, 6), (6, 7), (7, 8), (5, 9), (9, 10), (10, 11), (11, 12),
          (9, 13), (13, 14), (14, 15), (15, 16), (13, 17), (17, 18), (18, 19), (19, 20), (0, 17)]
@@ -29,7 +30,11 @@ def main(argv: list[str] | None = None) -> int:
     import cv2
     cfg = config.load(paths.CONFIG)
     gate = EngagementGate(cfg.engagement)
-    ctl = Controller(cfg, gate)
+    try:
+        ctl = Controller(cfg, gate, taps_from_config(cfg))
+    except TapModelError as e:
+        print(f"error: {e}", file=sys.stderr)
+        return 2
     hooks = InputActivityHook(gate)
     try:
         tracker = HandTracker(paths.resolve(cfg.app.model_path), cfg.app.hand, cfg.app.num_hands,
@@ -48,7 +53,7 @@ def main(argv: list[str] | None = None) -> int:
     try:
         with open(log_path, "w", newline="") as fh:
             w = csv.writer(fh)
-            w.writerow(["t", "hand", "score", "engaged", "pinch_i", "pinch_m", "s_index", "s_middle", "s_ring",
+            w.writerow(["t", "p_left", "p_right", "hand", "score", "engaged", "pinch_i", "pinch_m", "s_index", "s_middle", "s_ring",
                         "s_pinky", "spread", "idx_x", "idx_y", "idx_z", "palm_x", "palm_y", "hand_px", "actions"])
             while not args.seconds or time.monotonic() - t_start < args.seconds:
                 t, bgr = camera.latest(timeout=2.0)
@@ -72,7 +77,8 @@ def main(argv: list[str] | None = None) -> int:
                         recent.append((now, label))
                 if f is not None:
                     s = f.straightness
-                    w.writerow([f"{now:.3f}", f.handedness, f"{f.score:.2f}", int(engaged), f"{f.pinch_index:.3f}",
+                    probs = ctl.taps.last_probs if ctl.taps is not None else {"left": 0.0, "right": 0.0}
+                    w.writerow([f"{now:.3f}", f"{probs['left']:.3f}", f"{probs['right']:.3f}", f.handedness, f"{f.score:.2f}", int(engaged), f"{f.pinch_index:.3f}",
                                 f"{f.pinch_middle:.3f}", *(f"{s[k]:.3f}" for k in ("index", "middle", "ring", "pinky")),
                                 f"{f.spread_deg:.1f}", *(f"{v:.3f}" for v in f.index_local),
                                 f"{f.palm_px[0]:.1f}", f"{f.palm_px[1]:.1f}", f"{f.hand_px:.1f}", "|".join(names)])
@@ -94,6 +100,10 @@ def main(argv: list[str] | None = None) -> int:
                                  + f"  spread {f.spread_deg:.0f}deg  pose {pose}")
                 else:
                     lines.append("no hand")
+                if ctl.taps is not None:
+                    pl, pr = ctl.taps.last_probs["left"], ctl.taps.last_probs["right"]
+                    lines.append(f"tap model  left {pl:.2f} (fires >= {cfg.taps.left_threshold})  "
+                                 f"right {pr:.2f} (fires >= {cfg.taps.right_threshold})")
                 cv2.rectangle(img, (0, 0), (img.shape[1], 24 * len(lines) + 10), (0, 0, 0), -1)
                 for i, line in enumerate(lines):
                     cv2.putText(img, line, (10, 24 * (i + 1)), cv2.FONT_HERSHEY_SIMPLEX, 0.6, (255, 255, 255), 1)

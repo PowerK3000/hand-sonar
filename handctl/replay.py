@@ -20,6 +20,7 @@ from . import config, paths
 from .controller import Controller
 from .engagement import EngagementGate
 from .hand import HandFrame
+from .tap_model import from_config as taps_from_config
 
 EXPECT = {"click": ("click", "left"), "right_click": ("click", "right"), "drag": ("down", "left"),
           "scroll_up": ("scroll", "down"), "scroll_down": ("scroll", "up"),  # natural: finger up = page down
@@ -41,7 +42,7 @@ def replay_file(path: Path, cfg: config.Config) -> dict:
     d = np.load(path, allow_pickle=False)
     label = str(d["label"])
     gate = EngagementGate(cfg.engagement)
-    ctl = Controller(cfg, gate)
+    ctl = Controller(cfg, gate, taps_from_config(cfg))
     events: list[tuple[float, tuple]] = []
     last_scroll: tuple[float, tuple] | None = None
     for i, t in enumerate(d["t"]):
