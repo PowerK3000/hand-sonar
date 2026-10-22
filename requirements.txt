@@ -1,0 +1,8 @@
+comtypes==1.4.17
+numpy==2.5.4
+pillow==13.0.0
+pycaw==20260927
+pynput==1.8.2
+pystray==0.19.5
+scipy==1.18.1
+sounddevice==0.5.6
