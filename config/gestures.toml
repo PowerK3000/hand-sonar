@@ -50,13 +50,18 @@ extended_min = 0.85               # finger straightness (tip-to-knuckle / bone l
 curled_max = 0.70                 # ...and below this to count as curled
 
 [pointer]
-vertical_source = "image_y"       # front/side camera: raising the hand moves it up in the image. "height": raise/lower hand = cursor up/down (palm grows as it nears the overhead camera)
+# Which hand motion drives each cursor axis depends on camera placement; `python -m handctl.axis_check`
+# measures it (move right once, raise hand once) and rewrites these four lines.
+# Sources: image_x / image_y (hand moving across the picture), height (hand getting closer = bigger).
+horizontal_source = "image_x"
+horizontal_sign = -1.0
+vertical_source = "image_y"
+vertical_sign = 1.0
                                   # "image_y": push hand toward/away from the monitor
 height_gain = 5.0                 # hand-length-equivalents per unit of log palm size (~10 cm raise = ~1 hand length of travel)
 smooth_ms = 35                    # cursor glides toward each new target at 125 Hz instead of jumping per camera frame
 # Cursor follows the whole hand (palm centre), relative like a trackpad. Motion is measured in
 # hand lengths, so moving one hand-length gives the same cursor travel at any camera distance.
-mirror = true                     # webcam faces you: your right = camera's left
 pixels_per_hand = 450             # cursor travel for one hand-length of motion at slow speed (was 700: too twitchy live)
 acceleration = 2.0                # >1 = fast moves travel further (1 = linear)
 accel_ref_hands_per_s = 1.0       # speed where acceleration starts to kick in

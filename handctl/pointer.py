@@ -43,11 +43,14 @@ class Pointer:
         if self._prev_px is None:
             self._prev_px, self._prev_hand, self._prev_t, self._prev_size = palm_px.copy(), hand_px, t, palm_size_px
             return 0.0, 0.0
-        raw_step = (palm_px - self._prev_px) / (0.5 * (hand_px + self._prev_hand))
-        if self.cfg.vertical_source == "height" and palm_size_px > 0 and self._prev_size > 0:
-            # Raising the hand toward an overhead camera makes the palm look bigger: map that to
-            # cursor-up. In hand-length-equivalent units so leash/acceleration treat it like x.
-            raw_step = np.array([raw_step[0], -np.log(palm_size_px / self._prev_size) * self.cfg.height_gain])
+        img = (palm_px - self._prev_px) / (0.5 * (hand_px + self._prev_hand))
+        # Candidate motion signals in hand-length-equivalent units; which one drives each cursor
+        # axis (and its sign) depends on where the camera sits, so it's set by `handctl.axis_check`.
+        height = (np.log(palm_size_px / self._prev_size) * self.cfg.height_gain
+                  if palm_size_px > 0 and self._prev_size > 0 else 0.0)
+        cand = {"image_x": img[0], "image_y": img[1], "height": height}
+        raw_step = np.array([self.cfg.horizontal_sign * cand[self.cfg.horizontal_source],
+                             self.cfg.vertical_sign * cand[self.cfg.vertical_source]])
         dt = t - self._prev_t
         self._prev_px, self._prev_hand, self._prev_t, self._prev_size = palm_px.copy(), hand_px, t, palm_size_px
         mag = float(np.linalg.norm(raw_step))
@@ -70,4 +73,4 @@ class Pointer:
         c = self.cfg
         boost = max(1.0, self.last_speed / c.accel_ref_hands_per_s) ** (c.acceleration - 1.0)
         dx, dy = step * c.pixels_per_hand * boost
-        return (-dx if c.mirror else dx), dy
+        return dx, dy

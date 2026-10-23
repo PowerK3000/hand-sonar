@@ -50,7 +50,8 @@ def test_shipped_config_is_valid():
     (lambda r: r["gestures"]["scroll"].update(vertical_axis="sideways"), "vertical_axis"),
     (lambda r: r["pointer"].update(typo_key=1), "unknown keys"),
     (lambda r: r["app"].pop("camera_index"), "missing keys"),
-    (lambda r: r["pointer"].update(mirror="yes"), "must be bool"),
+    (lambda r: r["pointer"].update(horizontal_sign=2.0), "must be 1 or -1"),
+    (lambda r: r["engagement"].update(disengage_on_keyboard="yes"), "must be bool"),
     (lambda r: r["pointer"].update(acceleration=True), "must be float"),
     (lambda r: r.pop("engagement"), "missing section"),
 ])

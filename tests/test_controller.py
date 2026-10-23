@@ -274,7 +274,7 @@ def test_cursor_leash_swallows_jitter_but_passes_real_motion():
     assert abs(sum(a.dx for a in acts if a.kind == "move")) > 100
 
 
-HEIGHT_CFG = replace(CFG, pointer=replace(CFG.pointer, vertical_source="height"))
+HEIGHT_CFG = replace(CFG, pointer=replace(CFG.pointer, vertical_source="height", vertical_sign=-1.0))
 
 
 def test_raising_hand_toward_overhead_camera_moves_cursor_up():
