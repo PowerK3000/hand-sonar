@@ -80,6 +80,7 @@ class LeftPinch:
         self.cfg = cfg
         self.state = "idle"          # idle | pressed (cursor frozen) | dragging (cursor follows)
         self._origin: np.ndarray | None = None
+        self._t_press = 0.0
         self.touch = Touch(cfg.click)
 
     @property
@@ -101,7 +102,7 @@ class LeftPinch:
             return self.release()
         if self.state == "idle":
             if self.touch.touched(f, "index", hand_speed) and not other_busy:
-                self.state, self._origin = "pressed", f.palm_px.copy()
+                self.state, self._origin, self._t_press = "pressed", f.palm_px.copy(), f.t
                 return [Action("down", "left")]
             return []
         if self.touch.opened(f, "index"):
@@ -112,6 +113,10 @@ class LeftPinch:
             moved = float(np.linalg.norm(f.palm_px - self._origin)) / f.hand_px
             if moved >= self.cfg.drag.start_move:
                 self.state = "dragging"
+            elif f.t - self._t_press > self.cfg.drag.static_hold_max_s:
+                # Held without moving: almost always a thumb resting on the index, not intent.
+                # Live, one such press stayed down ~30 s (a stuck button selects/drags things).
+                return self.release()
         return []
 
 
@@ -121,6 +126,7 @@ class RightPinch:
     def __init__(self, cfg: Config) -> None:
         self.cfg = cfg
         self.pressed = False
+        self._t_press = 0.0
         self.touch = Touch(cfg.right_click)
 
     @property
@@ -138,9 +144,11 @@ class RightPinch:
             return self.release()
         if not self.pressed:
             if self.touch.touched(f, "middle", hand_speed) and not other_busy:
-                self.pressed = True
+                self.pressed, self._t_press = True, f.t
                 return [Action("down", "right")]
             return []
+        if f.t - self._t_press > self.cfg.drag.static_hold_max_s:
+            return self.release()
         if self.touch.opened(f, "middle"):
             self.pressed = False
             self.touch.touched(f, "middle", hand_speed)

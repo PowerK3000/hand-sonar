@@ -101,6 +101,7 @@ pose = "thumb_index_pinch"
 # Pinch = button held (pressed on touch, released on part). The cursor stays frozen while pressed
 # until the hand moves this far (hand lengths) since the touch, then it drags.
 start_move = 0.3
+static_hold_max_s = 1.5           # a press held this long without moving auto-releases (resting thumb, not intent)
 
 [gestures.scroll]
 # iPhone-style: slide the extended index finger; the content follows the finger.

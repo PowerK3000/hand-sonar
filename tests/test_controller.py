@@ -305,3 +305,12 @@ def test_fist_clutch_freezes_cursor_and_blocks_clicks():
     acts += r.run(0.12, curl=fist, thumb_to="index") + r.run(0.3, curl=fist)
     assert not [a for a in acts if a.kind in ("move", "click", "down")]
     assert r.ctl.clutched
+
+
+def test_press_held_still_auto_releases():
+    r = Rig()
+    r.run(0.3, thumb_to=None)
+    acts = r.run(3.0, thumb_to="index")             # thumb resting on the index for 3 s
+    assert kinds(acts) == [("down", "left"), ("up", "left")]
+    up_t = next(i for i, a in enumerate(acts) if a.kind == "up")
+    assert up_t < len(acts)                            # released while the fingers were still touching

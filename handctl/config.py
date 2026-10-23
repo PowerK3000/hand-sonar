@@ -85,6 +85,7 @@ class PinchCfg:
 @dataclass(frozen=True)
 class DragCfg:
     start_move: float
+    static_hold_max_s: float
 
 
 @dataclass(frozen=True)
@@ -192,7 +193,7 @@ def validate(c: Config) -> Config:
         _check(p.metric in ("2d", "3d"), f"[gestures.{name}] metric must be 2d or 3d")
         _check(p.arm_s >= 0 and p.snap_s > 0 and p.still_max > 0, f"[gestures.{name}] timing values out of range")
     _check(0 < c.clutch.max_straightness < 1, "[gestures.clutch] max_straightness must be in (0,1)")
-    _check(c.drag.start_move > 0, "[gestures.drag] start_move must be > 0")
+    _check(c.drag.start_move > 0 and c.drag.static_hold_max_s > 0, "[gestures.drag] values must be > 0")
     _check(c.scroll.vertical_axis in ("palm_forward", "palm_normal"),
            "[gestures.scroll] vertical_axis must be palm_forward or palm_normal")
     _check(c.scroll.wheel_per_hand > 0, "[gestures.scroll] wheel_per_hand must be > 0")
