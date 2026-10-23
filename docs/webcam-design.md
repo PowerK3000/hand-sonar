@@ -173,3 +173,14 @@ Strong fix = camera placement, not code: webcam low on the desk, 30-50 cm from t
 viewing it from the front/side. Then up/down = image y (raise/lower hand), side = image x,
 clicks = thumb-finger pinch seen in profile, with the stabiliser/leash/glide kept on top.
 Config switched to vertical_source = "image_y", taps mode = "pinch" for that setup.
+
+## GPU hand model trial (RTMPose-m via DirectML, 2026-10-22)
+Approved download: RTMPose-m hand ONNX (download.openmmlab.com, 51.3 MB zip, SHA-256 45c9e1aa...a56d)
++ onnxruntime-directml 1.24.4 (PyPI, Microsoft). Same live frames, fair crop (MediaPipe box):
+| | MediaPipe (CPU) | RTMPose-m (GTX 1060) |
+|---|---|---|
+| time per frame | 30 ms | 27 ms (20 ms model + crop/pre/post) |
+| rest jitter (hand-lengths/frame) | 0.0089 | 0.0112 |
+| thumb-index gap, still p5 vs taps p5 | 0.32 vs 0.27 | 0.42 vs 0.28 |
+Not better enough to justify the extra pipeline: slightly more jitter, near-equal speed, slightly
+better tap contrast. Kept `handctl/rtmpose.py` + `tools/tracker_compare.py`, not wired in.
