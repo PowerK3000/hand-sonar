@@ -74,6 +74,7 @@ class Controller:
         self.last_features: HandFeatures | None = None
         self.dropped_degenerate = 0
         self.clutched = False
+        self._open_since: float | None = None
 
     def _filter(self, f: HandFeatures) -> HandFeatures:
         names = list(f.straightness)
@@ -124,12 +125,27 @@ class Controller:
         self.last_features = f
         engaged = self.gate.engaged(t, f.score if f is not None else None)
         c = self.cfg.clutch
-        self.clutched = bool(c.enabled and f is not None
-                             and max(f.straightness.values()) <= c.max_straightness)
+        was_clutched = self.clutched
+        if not c.enabled or f is None:
+            self.clutched, self._open_since = False, None
+        else:
+            curl = max(f.straightness.values())
+            if not self.clutched:
+                self.clutched = curl <= c.max_straightness
+            elif curl > c.release_straightness:
+                # Sticky: leave the clutch only once the hand has been clearly open for a moment,
+                # or a flickering fist reading lets cursor motion through.
+                self._open_since = self._open_since if self._open_since is not None else t
+                if t - self._open_since >= c.release_s:
+                    self.clutched, self._open_since = False, None
+            else:
+                self._open_since = None
         # A fist brings the thumb against the index: don't let that read as a pinch or scroll.
         gestures_on = engaged and not self.clutched
+        clutch_rewind = self._rewind(t, c.rewind_s) if (self.clutched and not was_clutched) else []
 
-        actions: list[Action] = []
+        # Closing the hand into a fist moves the palm before the fist is recognised: undo that.
+        actions: list[Action] = list(clutch_rewind)
         if self.taps is not None:
             tapped = self.taps.update(frame if f is not None else None)
             if tapped and gestures_on and not self.scroll.active:
@@ -161,16 +177,17 @@ class Controller:
             if dx or dy:
                 actions.append(Action("move", dx=dx, dy=dy))
                 self._moves.append((t, dx, dy))
-        while self._moves and t - self._moves[0][0] > max(self.cfg.taps.rewind_s, 0.0):
+        while self._moves and t - self._moves[0][0] > max(self.cfg.taps.rewind_s, self.cfg.clutch.rewind_s):
             self._moves.popleft()
         actions += self.wake.update(f, engaged, self.pointer.last_speed)
         return actions
 
-    def _rewind(self, t: float) -> list[Action]:
+    def _rewind(self, t: float, window_s: float | None = None) -> list[Action]:
         """Undo cursor motion from the last rewind_s: the tap began before the model saw it,
         and the hand drifts while tapping, so click where the cursor was when the tap started."""
-        dx = sum(m[1] for m in self._moves if t - m[0] <= self.cfg.taps.rewind_s)
-        dy = sum(m[2] for m in self._moves if t - m[0] <= self.cfg.taps.rewind_s)
+        w = self.cfg.taps.rewind_s if window_s is None else window_s
+        dx = sum(m[1] for m in self._moves if t - m[0] <= w)
+        dy = sum(m[2] for m in self._moves if t - m[0] <= w)
         self._moves.clear()
         return [Action("move", dx=-dx, dy=-dy)] if (dx or dy) else []
 

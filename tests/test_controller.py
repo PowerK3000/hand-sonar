@@ -314,3 +314,18 @@ def test_press_held_still_auto_releases():
     assert kinds(acts) == [("down", "left"), ("up", "left")]
     up_t = next(i for i, a in enumerate(acts) if a.kind == "up")
     assert up_t < len(acts)                            # released while the fingers were still touching
+
+
+def test_closing_into_fist_undoes_the_motion_and_flicker_does_not_leak():
+    r = Rig()
+    open_hand = {"index": 0.2, "middle": 0.2, "ring": 0.2, "pinky": 0.2}
+    fist = {"index": 0.95, "middle": 0.95, "ring": 0.95, "pinky": 0.95}
+    r.run(0.5, curl=open_hand)
+    # Hand drifts while closing (motion that would move the cursor before the fist is recognised).
+    acts = r.run(0.15, curl={"index": 0.6, "middle": 0.6, "ring": 0.6, "pinky": 0.6},
+                 position=(0, 0, 0.5), end_position=(0.02, 0, 0.5))
+    acts += r.run(0.3, curl=fist, position=(0.02, 0, 0.5))
+    # One-frame flicker to "open" mid-clutch, while the hand moves: must not leak.
+    acts += r.run(1 / FPS, curl=open_hand, position=(0.03, 0, 0.5))
+    acts += r.run(0.5, curl=fist, position=(0.03, 0, 0.5), end_position=(0.08, 0, 0.5))
+    assert abs(sum(a.dx for a in acts if a.kind == "move")) < 3

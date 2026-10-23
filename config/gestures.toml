@@ -122,6 +122,9 @@ momentum_min_wheel_per_s = 60     # below this speed coasting stops
 # when you run out of room (like lifting a mouse at the edge of the pad). Open the hand to resume.
 enabled = true
 max_straightness = 0.75           # every finger at least this curled counts as a fist
+release_straightness = 0.85       # ...and the clutch only ends once a finger opens past this
+release_s = 0.15                  # ...for this long (sticky: no flicker letting motion through)
+rewind_s = 0.3                    # undo cursor motion from closing the hand into the fist
 
 [gestures.wake]
 action = "wake"                   # show the pointer overlay / wake the screen
