@@ -90,11 +90,24 @@ class HandControlApp:
             camera = Camera(self.cfg.app.camera_index)
             log.info("camera %dx%d @ %.0f fps", camera.width, camera.height, camera.fps)
             stab = LandmarkStabilizer()
+            stats_t0, n_frames, n_hand, track_s, ctl_s = time.monotonic(), 0, 0, 0.0, 0.0
             while not self._stop.is_set():
                 t, bgr = camera.latest(timeout=2.0)
+                a = time.perf_counter()
                 frame = tracker.process(t, bgr)
+                track_s += time.perf_counter() - a
+                n_frames += 1
+                n_hand += frame is not None
+                if time.monotonic() - stats_t0 >= 15:
+                    el = time.monotonic() - stats_t0
+                    log.info("stats: %.1f fps, hand in %d%% of frames, tracking %.0f ms, controller %.1f ms",
+                             n_frames / el, 100 * n_hand // max(1, n_frames), 1000 * track_s / max(1, n_frames),
+                             1000 * ctl_s / max(1, n_frames))
+                    stats_t0, n_frames, n_hand, track_s, ctl_s = time.monotonic(), 0, 0, 0.0, 0.0
+                a = time.perf_counter()
                 # Clicks read raw landmarks; only the cursor uses the stabilised copy.
                 actions = self.controller.step(frame, time.monotonic(), pointer_frame=stab(frame))
+                ctl_s += time.perf_counter() - a
                 with self._lock:
                     for a in actions:
                         if a.kind != "move":
