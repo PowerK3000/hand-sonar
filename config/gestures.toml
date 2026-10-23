@@ -17,7 +17,10 @@ pause_hotkey = "ctrl+alt+h"
 #            Thumb contact is often hidden from an overhead camera; the model reads the motion
 #            of the whole visible hand instead. Drag is not supported in this mode yet.
 #   "pinch": thumb-finger distance thresholds ([gestures.click] etc.); needs a clear view.
-mode = "model"
+#   "lift":  index fingertip lift = left click, middle lift = right click (training-free; chosen
+#            2026-10-22 because a lift is ~8.7x rest jitter from an overhead camera vs ~3.6x for a
+#            thumb tap). Middle lift is not yet validated on recordings.
+mode = "lift"
 model_path = "models/tap_model.joblib"
 left_threshold = 0.7              # held-out t1 (ensemble): left 12/16, right 16/17, 0 false triggers
 right_threshold = 0.4

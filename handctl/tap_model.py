@@ -100,7 +100,7 @@ def from_config(cfg) -> "TapDetector | None":
     """Detector for [taps] mode = model, else None."""
     from . import paths
     if cfg.taps.mode != "model":
-        return None
+        return None                        # "lift" builds its own training-free detector
     # One prediction per camera frame: thread fan-out costs more than it saves (42 -> 26 ms).
     from threadpoolctl import threadpool_limits
     threadpool_limits(1)

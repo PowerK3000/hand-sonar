@@ -30,7 +30,7 @@ def palm_scale(world, image):
 
 def frames(paths):
     for p in paths:
-        d = np.load(p, allow_pickle=False)
+        d = dict(np.load(p, allow_pickle=False))  # load once: indexing an NpzFile re-decompresses the whole array
         for i in np.flatnonzero(d["present"]):
             yield str(d["label"]), float(d["t"][i]), d["world"][i], d["image"][i], d["beats"]
 
@@ -74,7 +74,7 @@ def reconstruct(w, im, L):
 
 def separability(name, step_files, L, size_ref):
     for f in step_files:
-        d = np.load(f, allow_pickle=False)
+        d = dict(np.load(f, allow_pickle=False))  # load once: indexing an NpzFile re-decompresses the whole array
         label = str(d["label"])
         tip = INDEX_TIP if label == "click" else MIDDLE_TIP
         t, gen, per, two = [], [], [], []

@@ -90,7 +90,7 @@ def main(argv: list[str] | None = None) -> int:
                         recent.append((now, label))
                 if f is not None:
                     s = f.straightness
-                    probs = ctl.taps.last_probs if ctl.taps is not None else {"left": 0.0, "right": 0.0}
+                    probs = getattr(ctl.taps, "last_probs", None) or {"left": 0.0, "right": 0.0}
                     w.writerow([f"{now:.3f}", f"{probs['left']:.3f}", f"{probs['right']:.3f}", f.handedness, f"{f.score:.2f}", int(engaged), f"{f.pinch_index:.3f}",
                                 f"{f.pinch_middle:.3f}", *(f"{s[k]:.3f}" for k in ("index", "middle", "ring", "pinky")),
                                 f"{f.spread_deg:.1f}", *(f"{v:.3f}" for v in f.index_local),
@@ -118,7 +118,10 @@ def main(argv: list[str] | None = None) -> int:
                                  + f"  spread {f.spread_deg:.0f}deg  pose {pose}")
                 else:
                     lines.append("no hand")
-                if ctl.taps is not None:
+                if ctl.taps is not None and hasattr(ctl.taps, "last_stroke"):
+                    st = ctl.taps.last_stroke
+                    lines.append(f"lift strokes  index {st['index']:.2f}  middle {st['middle']:.2f}  (fires >= 0.80)")
+                elif ctl.taps is not None:
                     pl, pr = ctl.taps.last_probs["left"], ctl.taps.last_probs["right"]
                     lines.append(f"tap model  left {pl:.2f} (fires >= {cfg.taps.left_threshold})  "
                                  f"right {pr:.2f} (fires >= {cfg.taps.right_threshold})")

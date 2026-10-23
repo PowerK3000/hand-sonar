@@ -48,7 +48,7 @@ def frame_vector(world, image, side):
 
 
 def load_step(path):
-    d = np.load(path, allow_pickle=False)
+    d = dict(np.load(path, allow_pickle=False))  # load once: indexing an NpzFile re-decompresses the whole array
     latch = HandednessLatch()
     t, X = [], []
     for i, ti in enumerate(d["t"]):

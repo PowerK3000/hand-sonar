@@ -31,9 +31,9 @@ TIPS = (8, 12, 16, 20)
 def fit_step(path: Path, shape, cam):
     out = cache_dir() / path.parent.name / path.name
     if out.is_file():
-        z = np.load(out)
+        z = dict(np.load(out))  # load once: indexing an NpzFile re-decompresses the whole array
         return z["t"], z["F"]
-    z = np.load(path, allow_pickle=False)
+    z = dict(np.load(path, allow_pickle=False))  # load once: indexing an NpzFile re-decompresses the whole array
     from handctl.hand import HandFrame
     from handctl.stabilize import LandmarkStabilizer
     fitter, latch, last, stab = PoseFitter(shape, cam), HandednessLatch(), None, LandmarkStabilizer()
@@ -65,7 +65,7 @@ def build(session: Path, shape, cam):
     for p in sorted(session.glob("*.npz")):
         if p.name.endswith(".tmp.npz"):
             continue
-        z = np.load(p, allow_pickle=False)
+        z = dict(np.load(p, allow_pickle=False))  # load once: indexing an NpzFile re-decompresses the whole array
         label = str(z["label"])
         if label not in tt.TAP_CLASSES and label not in tt.NEGATIVE_STEPS:
             continue

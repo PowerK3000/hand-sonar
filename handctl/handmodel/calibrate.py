@@ -126,7 +126,7 @@ def load_frames(session_dirs: list[Path], stride: int = 2) -> tuple[list, Camera
         for p in sorted(d.glob("*.npz")):
             if p.name.endswith(".tmp.npz"):
                 continue
-            z = np.load(p, allow_pickle=False)
+            z = dict(np.load(p, allow_pickle=False))  # load once: indexing an NpzFile re-decompresses the whole array
             meta = json.loads(str(z["meta"]))
             if meta.get("camera"):
                 cam = Camera(width=int(meta["camera"][0]), height=int(meta["camera"][1]))

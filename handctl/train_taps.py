@@ -30,7 +30,7 @@ NEAR_S = 0.6                                # unlabeled frames this close to a t
 
 
 def load_step(path: Path):
-    d = np.load(path, allow_pickle=False)
+    d = dict(np.load(path, allow_pickle=False))  # load once: indexing an NpzFile re-decompresses the whole array
     latch = HandednessLatch()
     t, X = [], []
     for i, ti in enumerate(d["t"]):

@@ -10,7 +10,7 @@ from handctl.hand import HandFrame
 
 
 def load(path):
-    d = np.load(path, allow_pickle=False)
+    d = dict(np.load(path, allow_pickle=False))  # load once: indexing an NpzFile re-decompresses the whole array
     latch = HandednessLatch()
     out = []
     for i, t in enumerate(d["t"]):

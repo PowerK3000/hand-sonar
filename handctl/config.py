@@ -160,7 +160,7 @@ def validate(c: Config) -> Config:
     _check(c.app.camera_index >= 0, "[app] camera_index must be >= 0")
     _check(c.app.num_hands in (1, 2), "[app] num_hands must be 1 or 2")
     _check(160 <= c.app.process_width <= 1920, "[app] process_width must be in [160, 1920]")
-    _check(c.taps.mode in ("model", "pinch"), "[taps] mode must be model or pinch")
+    _check(c.taps.mode in ("lift", "model", "pinch"), "[taps] mode must be lift, model or pinch")
     _check(0 < c.taps.left_threshold < 1 and 0 < c.taps.right_threshold < 1, "[taps] thresholds must be in (0,1)")
     _check(c.taps.refractory_s >= 0 and 0 <= c.taps.rewind_s <= 1, "[taps] refractory_s >= 0, rewind_s in [0,1]")
     _check(0 <= c.engagement.min_confidence <= 1, "[engagement] min_confidence must be in [0,1]")

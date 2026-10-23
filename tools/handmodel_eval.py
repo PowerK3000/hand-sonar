@@ -14,7 +14,7 @@ STEPS = {"click": 8, "right_click": 12}
 
 
 def run_step(path, shape, cam):
-    z = np.load(path, allow_pickle=False)
+    z = dict(np.load(path, allow_pickle=False))  # load once: indexing an NpzFile re-decompresses the whole array
     label = str(z["label"])
     tip = STEPS[label]
     fitter = PoseFitter(shape, cam)

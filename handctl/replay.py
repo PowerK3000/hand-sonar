@@ -39,7 +39,7 @@ def _event(a) -> tuple[str, str | None] | None:
 
 
 def replay_file(path: Path, cfg: config.Config) -> dict:
-    d = np.load(path, allow_pickle=False)
+    d = dict(np.load(path, allow_pickle=False))  # load once: indexing an NpzFile re-decompresses the whole array
     label = str(d["label"])
     gate = EngagementGate(cfg.engagement)
     ctl = Controller(cfg, gate, taps_from_config(cfg))

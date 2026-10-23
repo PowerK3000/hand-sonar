@@ -11,6 +11,7 @@ from handctl.tap_model import TapDetector, TapModelInfo
 from tests import synth
 
 CFG = config.load(Path(__file__).resolve().parents[1] / "config" / "gestures.toml")
+CFG = replace(CFG, taps=replace(CFG.taps, mode="model"))     # these tests cover the learned-model mode
 INFO = TapModelInfo(FEATURE_VERSION, WINDOW_FRAMES, ["test"], 1, 1)
 WARM = 10  # at 25 fps the first full 0.4 s window ends on frame index 10
 

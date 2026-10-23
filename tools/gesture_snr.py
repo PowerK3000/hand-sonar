@@ -17,19 +17,24 @@ from handctl.pose_features import frame_vector
 TIPS = {"thumb": 4, "index": 8, "middle": 12, "ring": 16, "pinky": 20}
 
 
+PALM = [0, 5, 9, 13, 17]
+PAIRS = [(a, b) for i, a in enumerate(PALM) for b in PALM[i + 1:]]
+
+
 def tips2d(path):
-    z = np.load(path, allow_pickle=False)
-    latch = HandednessLatch()
+    """Fingertips relative to the palm centroid, in units of palm size. No rotation alignment:
+    aligning by the short wrist->knuckle vector swung distant fingertips with its angular noise."""
+    z = dict(np.load(path, allow_pickle=False))  # load once: indexing an NpzFile re-decompresses the whole array
     t, P = [], []
     for i in range(len(z["t"])):
         if not z["present"][i]:
-            latch.reset(); continue
-        try:
-            v = frame_vector(z["world"][i], z["image"][i], latch(str(z["handedness"][i])))
-        except DegenerateHand:
             continue
-        w2 = v[:42].reshape(21, 2)
-        P.append(np.stack([w2[k] for k in TIPS.values()]))
+        im = z["image"][i]
+        size = np.mean([np.linalg.norm(im[a] - im[b]) for a, b in PAIRS])
+        if size < 5:
+            continue
+        c = im[PALM].mean(axis=0)
+        P.append(np.stack([(im[k] - c) / size for k in TIPS.values()]))
         t.append(float(z["t"][i]))
     return str(z["label"]), np.array(t), np.array(P), np.array(z["beats"])
 
@@ -41,12 +46,12 @@ def window_disp(t, P, start, pre=0.35, dur=0.9):
         return None
     base = np.median(P[pre_m], axis=0)
     d = np.linalg.norm(P[m] - base, axis=2)          # (frames, tips)
-    return d.max(axis=0)                               # per tip
+    return np.percentile(d, 85, axis=0)                # robust "peak": ignores single-frame glitches
 
 
-def main(session):
+def main(session, rest_path=None):
     files = {tips2d(p)[0]: p for p in sorted(Path(session).glob("*.npz"))}
-    _, t, P, _ = tips2d(files["rest"])
+    _, t, P, _ = tips2d(Path(rest_path) if rest_path else files["rest"])
     rng = np.random.default_rng(0)
     rest = [window_disp(t, P, s) for s in rng.uniform(t[0] + 0.5, t[-1] - 1.0, 200)]
     rest = np.array([r for r in rest if r is not None])
@@ -69,4 +74,4 @@ def main(session):
 
 
 if __name__ == "__main__":
-    main(sys.argv[1])
+    main(sys.argv[1], sys.argv[2] if len(sys.argv) > 2 else None)

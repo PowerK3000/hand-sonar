@@ -20,6 +20,7 @@ from .hand import HandFrame
 from .one_euro import OneEuroFilter
 from .pointer import Pointer
 from .tap_model import TapDetector
+from .lift_detector import LiftDetector
 
 # A gap longer than this restarts filters and the pointer, so a hand re-entering the frame
 # doesn't produce one huge jump from where it left.
@@ -52,7 +53,12 @@ class Controller:
         if cfg.taps.mode == "model" and taps is None:
             raise ValueError("[taps] mode = model needs a TapDetector (train one with handctl.train_taps)")
         self.cfg, self.gate = cfg, gate
-        self.taps = taps if cfg.taps.mode == "model" else None
+        if cfg.taps.mode == "model":
+            self.taps = taps
+        elif cfg.taps.mode == "lift":
+            self.taps = LiftDetector()
+        else:
+            self.taps = None
         self._moves: deque[tuple[float, float, float]] = deque()   # (t, dx, dy) for click rewind
         fc = cfg.filter
         self._shape_filter = OneEuroFilter(fc.min_cutoff_hz, fc.beta, fc.d_cutoff_hz)
