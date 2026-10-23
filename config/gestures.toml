@@ -43,13 +43,14 @@ extended_min = 0.85               # finger straightness (tip-to-knuckle / bone l
 curled_max = 0.70                 # ...and below this to count as curled
 
 [pointer]
+smooth_ms = 35                    # cursor glides toward each new target at 125 Hz instead of jumping per camera frame
 # Cursor follows the whole hand (palm centre), relative like a trackpad. Motion is measured in
 # hand lengths, so moving one hand-length gives the same cursor travel at any camera distance.
 mirror = true                     # webcam faces you: your right = camera's left
-pixels_per_hand = 700             # cursor travel for one hand-length of motion at slow speed
-acceleration = 1.6                # >1 = fast moves travel further (1 = linear)
+pixels_per_hand = 450             # cursor travel for one hand-length of motion at slow speed (was 700: too twitchy live)
+acceleration = 2.0                # >1 = fast moves travel further (1 = linear)
 accel_ref_hands_per_s = 1.0       # speed where acceleration starts to kick in
-deadzone = 0.01                   # hand lengths per frame; kills jitter at rest
+deadzone = 0.04                   # leash radius in hand lengths: the cursor ignores palm jitter inside it
 
 [gestures.click]
 action = "left_click"

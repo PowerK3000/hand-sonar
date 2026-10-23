@@ -9,6 +9,9 @@ aren't rounded away.
 from __future__ import annotations
 
 import ctypes
+import math
+import threading
+import time
 from ctypes import wintypes
 
 from .actions import Action
@@ -43,13 +46,75 @@ class OutputError(OSError):
     pass
 
 
+GLIDE_TICK_S = 0.008                    # 125 Hz
+_DPI_AWARE_V2 = ctypes.c_void_p(-4)
+
+
+def _make_dpi_aware(user32) -> None:
+    """Without this, on Kayden's two-monitor setup GetCursorPos (scaled) and absolute SendInput
+    (physical) disagree and small moves drift: +43 px came out as +13. Must run before any
+    window is created; harmless if the process is already aware."""
+    try:
+        user32.SetProcessDpiAwarenessContext(_DPI_AWARE_V2)
+    except AttributeError:          # pre-1703 Windows
+        user32.SetProcessDPIAware()
+
+
 class WindowsOutput:
-    def __init__(self) -> None:
+    """`smooth_ms` > 0: cursor moves are queued and a 125 Hz thread glides the cursor toward the
+    target (exponential, time constant smooth_ms), so ~20 fps camera updates don't show up as
+    20 visible jumps per second. Clicks flush the queue first so they land where intended."""
+
+    def __init__(self, smooth_ms: float = 0.0) -> None:
         self._u = ctypes.WinDLL("user32", use_last_error=True)
+        _make_dpi_aware(self._u)
         self._k = ctypes.WinDLL("kernel32")
         self._fx = self._fy = 0.0          # sub-pixel remainder
         self._wh = self._wv = 0.0          # fractional wheel remainder
         self._held: set[str] = set()
+        self._lock = threading.Lock()
+        self._pending = [0.0, 0.0]
+        self._tau = smooth_ms / 1000.0
+        self._stop = threading.Event()
+        self._glide: threading.Thread | None = None
+        self.glide_errors = 0
+        if self._tau > 0:
+            self._glide = threading.Thread(target=self._glide_loop, name="cursor-glide", daemon=True)
+            self._glide.start()
+
+    def _glide_loop(self) -> None:
+        last = time.perf_counter()
+        while not self._stop.wait(GLIDE_TICK_S):
+            now = time.perf_counter()
+            frac = 1.0 - math.exp(-(now - last) / self._tau)
+            last = now
+            with self._lock:
+                dx, dy = self._pending[0] * frac, self._pending[1] * frac
+                if abs(self._pending[0]) + abs(self._pending[1]) < 0.5:
+                    # Tail end: hand over the remainder in one go (sub-pixel accounting in _move
+                    # keeps the fraction), so no motion is ever dropped.
+                    dx, dy = self._pending
+                    if not (dx or dy):
+                        continue
+                self._pending[0] -= dx
+                self._pending[1] -= dy
+                try:
+                    self._move(dx, dy)
+                except OutputError:
+                    self.glide_errors += 1      # elevated window focused; keep gliding later
+
+    def _flush(self) -> None:
+        with self._lock:
+            dx, dy = self._pending
+            self._pending = [0.0, 0.0]
+            if dx or dy:
+                self._move(dx, dy)
+
+    def close(self) -> None:
+        self._stop.set()
+        if self._glide is not None:
+            self._glide.join(1)
+        self._flush()
 
     def _send(self, flags: int, dx: int = 0, dy: int = 0, data: int = 0) -> None:
         inp = _INPUT(type=INPUT_MOUSE, u=_INPUTUNION(mi=_MOUSEINPUT(dx, dy, data & 0xFFFFFFFF, flags, 0, 0)))
@@ -90,8 +155,16 @@ class WindowsOutput:
     def apply(self, action: Action) -> None:
         k = action.kind
         if k == "move":
-            self._move(action.dx, action.dy)
-        elif k == "scroll":
+            if self._tau > 0:
+                with self._lock:
+                    self._pending[0] += action.dx
+                    self._pending[1] += action.dy
+            else:
+                self._move(action.dx, action.dy)
+            return
+        if k in ("down", "up", "click"):
+            self._flush()
+        if k == "scroll":
             self._scroll(action.dx, action.dy)
         elif k in ("down", "up", "click"):
             down, up = _BUTTONS[action.button]

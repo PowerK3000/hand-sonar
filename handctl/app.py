@@ -42,7 +42,7 @@ class HandControlApp:
         self.cfg = cfg
         self.gate = EngagementGate(cfg.engagement)
         self.controller = Controller(cfg, self.gate, taps_from_config(cfg))
-        self.output = WindowsOutput()
+        self.output = WindowsOutput(cfg.pointer.smooth_ms)
         self.hooks = InputActivityHook(self.gate)
         self.hotkey = GlobalHotkey(cfg.app.pause_hotkey, self.toggle_pause)
         self._stop = threading.Event()
@@ -141,6 +141,7 @@ class HandControlApp:
             self._release()
             self.hotkey.stop()
             self.hooks.stop()
+            self.output.close()
         if self.fatal is not None:
             log.error("exited after error: %s", self.fatal)
             return 1

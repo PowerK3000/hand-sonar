@@ -48,12 +48,13 @@ def main(argv: list[str] | None = None) -> int:
         return 2
     hooks.start()
     stab = LandmarkStabilizer()
-    out = WindowsOutput() if args.live else None
+    out = WindowsOutput(cfg.pointer.smooth_ms) if args.live else None
     paths.LOGS.mkdir(parents=True, exist_ok=True)
     log_path = paths.LOGS / f"preview-{time.strftime('%Y%m%d-%H%M%S')}.csv"
     recent: deque[tuple[float, str]] = deque(maxlen=6)
     cursor = [0.0, 0.0]
     frames, t_start = deque(maxlen=30), time.monotonic()
+    drawn = 0
     win = ("handctl LIVE - controlling your mouse  (touch keyboard/mouse = pause, Esc = quit)" if args.live
            else "handctl preview (DRY RUN - no input sent)  Esc = quit")
     try:
@@ -94,6 +95,11 @@ def main(argv: list[str] | None = None) -> int:
                                 f"{f.pinch_middle:.3f}", *(f"{s[k]:.3f}" for k in ("index", "middle", "ring", "pinky")),
                                 f"{f.spread_deg:.1f}", *(f"{v:.3f}" for v in f.index_local),
                                 f"{f.palm_px[0]:.1f}", f"{f.palm_px[1]:.1f}", f"{f.hand_px:.1f}", "|".join(names)])
+                drawn += 1
+                if drawn % 2:                      # drawing every frame cost ~half the live frame rate
+                    if cv2.waitKey(1) == 27:
+                        break
+                    continue
                 img = bgr.copy()
                 if frame is not None:
                     pts = frame.image.astype(int)
@@ -134,6 +140,7 @@ def main(argv: list[str] | None = None) -> int:
                 except OutputError:
                     pass
             out.release_all()
+            out.close()
         camera.close()
         tracker.close()
         hooks.stop()

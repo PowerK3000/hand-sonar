@@ -260,3 +260,15 @@ def test_wake_disabled_never_fires():
     cfg = replace(CFG, wake=replace(CFG.wake, enabled=False))
     r = Rig(cfg)
     assert kinds(r.run(2.0, curl=OPEN, spread_deg=40)) == []
+
+
+def test_cursor_leash_swallows_jitter_but_passes_real_motion():
+    r = Rig()
+    rng = np.random.default_rng(9)
+    r.run(0.3, thumb_to=None)
+    jit = []
+    for _ in range(90):                                   # ~1.5 hand-% jitter, like the live log
+        jit += r.run(1 / FPS, thumb_to=None, position=tuple(np.array([0, 0, 0.5]) + rng.normal(0, 0.0015, 3)))
+    assert sum(abs(a.dx) + abs(a.dy) for a in jit if a.kind == "move") < 5
+    acts = r.run(0.5, thumb_to=None, position=(0, 0, 0.5), end_position=(0.06, 0, 0.5))
+    assert abs(sum(a.dx for a in acts if a.kind == "move")) > 100

@@ -14,8 +14,15 @@ from .config import PointerCfg
 
 
 class Pointer:
+    """Leash, not per-frame deadzone: live data showed the palm centre jitters a median 2.8% of
+    hand length per frame at ~20 fps, so 80% of frames beat a per-frame deadzone and leaked
+    10-15 px twitches. The anchor now stays put until the palm leaves `deadzone` (hand lengths)
+    around it, then is dragged along: jitter inside the zone never reaches the cursor."""
+
     def __init__(self, cfg: PointerCfg) -> None:
         self.cfg = cfg
+        self._anchor: np.ndarray | None = None   # leashed palm position, hand units relative to entry
+        self._pos = np.zeros(2)
         self._prev_px: np.ndarray | None = None
         self._prev_hand: float = 0.0
         self._prev_t = 0.0
@@ -24,6 +31,7 @@ class Pointer:
 
     def reset(self) -> None:
         self._prev_px = None
+        self._anchor = None
         self.last_step = self.last_speed = 0.0
 
     def update(self, palm_px: np.ndarray, hand_px: float, t: float, frozen: bool) -> tuple[float, float]:
@@ -33,16 +41,26 @@ class Pointer:
         if self._prev_px is None:
             self._prev_px, self._prev_hand, self._prev_t = palm_px.copy(), hand_px, t
             return 0.0, 0.0
-        step = (palm_px - self._prev_px) / (0.5 * (hand_px + self._prev_hand))
+        raw_step = (palm_px - self._prev_px) / (0.5 * (hand_px + self._prev_hand))
         dt = t - self._prev_t
         self._prev_px, self._prev_hand, self._prev_t = palm_px.copy(), hand_px, t
-        mag = float(np.linalg.norm(step))
+        mag = float(np.linalg.norm(raw_step))
         self.last_step = mag
         self.last_speed = mag / dt if dt > 0 else 0.0
-        # Always track position while frozen so the cursor doesn't jump when released.
-        if frozen or mag <= self.cfg.deadzone:
+        # Track the palm in hand units (integrated steps, so changing distance doesn't shift it).
+        self._pos = (self._pos if self._anchor is not None else np.zeros(2)) + raw_step
+        if self._anchor is None:
+            self._anchor = self._pos.copy()
             return 0.0, 0.0
-        step = step * (mag - self.cfg.deadzone) / mag
+        d = self._pos - self._anchor
+        dist = float(np.linalg.norm(d))
+        if dist <= self.cfg.deadzone:
+            return 0.0, 0.0
+        step = d * (dist - self.cfg.deadzone) / dist
+        self._anchor = self._anchor + step
+        # Still track while frozen (pinch, scroll) so releasing doesn't jump the cursor.
+        if frozen:
+            return 0.0, 0.0
         c = self.cfg
         boost = max(1.0, self.last_speed / c.accel_ref_hands_per_s) ** (c.acceleration - 1.0)
         dx, dy = step * c.pixels_per_hand * boost

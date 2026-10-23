@@ -58,6 +58,7 @@ class PosesCfg:
 
 @dataclass(frozen=True)
 class PointerCfg:
+    smooth_ms: float
     mirror: bool
     pixels_per_hand: float
     acceleration: float
