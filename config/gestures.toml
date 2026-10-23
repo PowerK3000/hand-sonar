@@ -53,10 +53,10 @@ curled_max = 0.70                 # ...and below this to count as curled
 # Which hand motion drives each cursor axis depends on camera placement; `python -m handctl.axis_check`
 # measures it (move right once, raise hand once) and rewrites these four lines.
 # Sources: image_x / image_y (hand moving across the picture), height (hand getting closer = bigger).
-horizontal_source = "image_x"
-horizontal_sign = -1.0
-vertical_source = "image_y"
-vertical_sign = 1.0
+horizontal_source = "image_y"
+horizontal_sign = 1.0
+vertical_source = "image_x"
+vertical_sign = -1.0
                                   # "image_y": push hand toward/away from the monitor
 height_gain = 5.0                 # hand-length-equivalents per unit of log palm size (~10 cm raise = ~1 hand length of travel)
 smooth_ms = 35                    # cursor glides toward each new target at 125 Hz instead of jumping per camera frame

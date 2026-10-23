@@ -23,6 +23,10 @@ PHASES = [("right", "Slowly move your hand to the RIGHT (keep it at the same hei
           ("raise", "Slowly RAISE your hand (keep it in the same left/right spot)")]
 PHASE_S = 4.0
 MIN_CLARITY = 1.5      # winner must beat the runner-up by this factor, or we don't trust it
+# Per-signal noise (rest jitter, same units as `choose` compares): apparent-size "height" is ~4x
+# noisier than image position once scaled by height_gain, so it must win by signal-to-noise,
+# not raw size. Picking it on raw size mapped left/right to the noisiest signal (2026-10-22).
+NOISE = {"image_x": 1.0, "image_y": 1.0, "height": 4.0}
 
 
 def measure(camera, tracker, cv2, prompt: str) -> dict[str, float] | None:
@@ -57,7 +61,7 @@ def measure(camera, tracker, cv2, prompt: str) -> dict[str, float] | None:
 
 
 def choose(change: dict[str, float], height_gain: float, exclude: str | None = None) -> tuple[str, float, float]:
-    scaled = {k: v * (height_gain if k == "height" else 1.0) for k, v in change.items() if k != exclude}
+    scaled = {k: v * (height_gain if k == "height" else 1.0) / NOISE[k] for k, v in change.items() if k != exclude}
     ranked = sorted(scaled.items(), key=lambda kv: -abs(kv[1]))
     (src, val), (_, runner) = ranked[0], ranked[1]
     clarity = abs(val) / max(abs(runner), 1e-6)

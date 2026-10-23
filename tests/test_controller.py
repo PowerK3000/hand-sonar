@@ -11,7 +11,10 @@ from tests import synth
 
 CFG = config.load(Path(__file__).resolve().parents[1] / "config" / "gestures.toml")
 CFG = replace(CFG, taps=replace(CFG.taps, mode="pinch"),    # threshold-pinch behaviour under test
-              wake=replace(CFG.wake, enabled=True))
+              wake=replace(CFG.wake, enabled=True),
+              # Reference camera (facing the user); the shipped mapping follows Kayden's camera.
+              pointer=replace(CFG.pointer, horizontal_source="image_x", horizontal_sign=-1.0,
+                              vertical_source="image_y", vertical_sign=1.0))
 FPS = 60.0
 POINT = {"index": 0.1, "middle": 0.95, "ring": 0.95, "pinky": 0.95}   # index out, rest curled
 OPEN = {"index": 0.0, "middle": 0.0, "ring": 0.0, "pinky": 0.0}
