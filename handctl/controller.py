@@ -56,7 +56,7 @@ class Controller:
         self._moves: deque[tuple[float, float, float]] = deque()   # (t, dx, dy) for click rewind
         fc = cfg.filter
         self._shape_filter = OneEuroFilter(fc.min_cutoff_hz, fc.beta, fc.d_cutoff_hz)
-        self._palm_filter = OneEuroFilter(fc.min_cutoff_hz, fc.beta, fc.d_cutoff_hz)
+        self._palm_filter = OneEuroFilter(fc.palm_min_cutoff_hz, fc.palm_beta, fc.d_cutoff_hz)
         self.pointer = Pointer(cfg.pointer)
         self.left = LeftPinch(cfg)
         self.right = RightPinch(cfg)

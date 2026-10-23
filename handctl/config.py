@@ -48,6 +48,8 @@ class FilterCfg:
     min_cutoff_hz: float
     beta: float
     d_cutoff_hz: float
+    palm_min_cutoff_hz: float
+    palm_beta: float
 
 
 @dataclass(frozen=True)
