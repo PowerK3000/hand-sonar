@@ -184,3 +184,12 @@ Approved download: RTMPose-m hand ONNX (download.openmmlab.com, 51.3 MB zip, SHA
 | thumb-index gap, still p5 vs taps p5 | 0.32 vs 0.27 | 0.42 vs 0.28 |
 Not better enough to justify the extra pipeline: slightly more jitter, near-equal speed, slightly
 better tap contrast. Kept `handctl/rtmpose.py` + `tools/tracker_compare.py`, not wired in.
+
+## Comparison with a popular GitHub project (2026-10-22)
+takeyamayuki/NonMouse (Apache-2.0, 202 stars), source only, reviewed, run unmodified in its own venv
+(C:\Users\kayde\source\third_party\NonMouse) via a small launcher that maps its legacy
+`mp.solutions.hands` calls onto the same MediaPipe Tasks model we use, so tracking was identical.
+Kayden's verdict: "really counterintuitive controls, not convenient, and really jittery." It moves the
+cursor only while Alt is held, follows the index fingertip with a plain moving average, and clicks by
+pressing the thumb against the side of the index. Our smoothing chain (stabiliser + leash + glide),
+press-on-touch clicks and fist clutch are the differentiators.
