@@ -53,6 +53,8 @@ class HandShape:
     thumb_bones: np.ndarray     # (3,) metacarpal (CMC->MCP), proximal, distal
 
     def __post_init__(self) -> None:
+        for k in ("palm", "finger_bones", "finger_splay", "thumb_bones"):
+            object.__setattr__(self, k, np.ascontiguousarray(getattr(self, k), dtype=float))
         if self.palm.shape != (5, 3) or self.finger_bones.shape != (4, 3) or self.finger_splay.shape != (4,) \
                 or self.thumb_bones.shape != (3,):
             raise ValueError("bad HandShape array shapes")
@@ -92,7 +94,15 @@ def rodrigues(r: np.ndarray) -> np.ndarray:
 
 
 def local_joints(shape: HandShape, pose: np.ndarray) -> np.ndarray:
-    """(B, 27) poses -> (B, 21, 3) joints in the anatomical local frame."""
+    """(B, 27) poses -> (B, 21, 3) joints in the anatomical local frame (compiled fast path)."""
+    pose = np.ascontiguousarray(np.atleast_2d(pose), dtype=float)
+    if _fast is not None:
+        return _fast.local_batch(shape.palm, shape.finger_bones, shape.finger_splay, shape.thumb_bones, pose)
+    return local_joints_reference(shape, pose)
+
+
+def local_joints_reference(shape: HandShape, pose: np.ndarray) -> np.ndarray:
+    """NumPy reference implementation (tests check the compiled version against this)."""
     pose = np.atleast_2d(pose)
     B = len(pose)
     J = np.zeros((B, 21, 3))
@@ -136,9 +146,22 @@ def _rotate(v: np.ndarray, axis: np.ndarray, angle: np.ndarray) -> np.ndarray:
 
 def camera_joints(shape: HandShape, pose: np.ndarray) -> np.ndarray:
     """(B, 27) -> (B, 21, 3) joints in camera coordinates."""
+    pose = np.ascontiguousarray(np.atleast_2d(pose), dtype=float)
+    if _fast is not None:
+        return _fast.camera_batch(shape.palm, shape.finger_bones, shape.finger_splay, shape.thumb_bones, pose)
+    return camera_joints_reference(shape, pose)
+
+
+def camera_joints_reference(shape: HandShape, pose: np.ndarray) -> np.ndarray:
     pose = np.atleast_2d(pose)
     R = rodrigues(pose[:, SL_ROT])
-    return np.einsum("bij,bkj->bki", R, local_joints(shape, pose)) + pose[:, None, SL_TRANS]
+    return np.einsum("bij,bkj->bki", R, local_joints_reference(shape, pose)) + pose[:, None, SL_TRANS]
+
+
+try:  # compiled kernels are an optimisation, never a hard dependency
+    from . import fast_fk as _fast
+except ImportError:  # pragma: no cover
+    _fast = None
 
 
 def rest_pose(distance_m: float = 0.5) -> np.ndarray:

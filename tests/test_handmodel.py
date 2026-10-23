@@ -161,3 +161,9 @@ def test_calibration_learns_true_proportions_from_generic_guesses():
         return np.abs(b / b.sum() - t / t.sum()).sum()
     print(f"ratio error before {ratio_err(s0):.4f} after {ratio_err(s1):.4f}")
     assert ratio_err(s1) < 0.6 * ratio_err(s0)
+
+
+def test_compiled_fk_matches_reference():
+    poses = np.stack([random_pose(np.random.default_rng(k)) for k in range(30)])
+    np.testing.assert_allclose(sk.local_joints(SHAPE, poses), sk.local_joints_reference(SHAPE, poses), atol=1e-12)
+    np.testing.assert_allclose(sk.camera_joints(SHAPE, poses), sk.camera_joints_reference(SHAPE, poses), atol=1e-12)

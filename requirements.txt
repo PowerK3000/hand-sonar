@@ -1,7 +1,9 @@
 bleak==3.0.2
 comtypes==1.4.17
 hidapi==0.15.0
+llvmlite==0.50.0
 mediapipe==1.1.1
+numba==0.68.0
 numpy==2.5.4
 opencv-python==5.0.0.93
 pillow==13.0.0
