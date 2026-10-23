@@ -46,6 +46,11 @@ class FitWeights:
     robust_scale: float = 2.0        # soft_l1 kicks in beyond ~2 sigma
 
 
+REINIT_FINGER_PX = 15.0          # a finger joint this far off triggers multi-hypothesis retry
+REINIT_NFEV = 6
+FINGER_HYPOTHESES = ((0.1, 0.1, 0.05), (0.8, 1.0, 0.6), (1.4, 1.7, 1.0))   # straight, half, curled
+
+
 @dataclass(frozen=True)
 class FitResult:
     pose: np.ndarray                 # (27,)
@@ -130,9 +135,30 @@ class PoseFitter:
             R = self._residuals(batch, obs2d, mp3d, prev)
             return ((R[1:] - R[0]) / eps).T
 
-        res = least_squares(fun, x0, jac=jac, bounds=(self.lo, self.hi), loss="soft_l1",
-                            f_scale=self.w.robust_scale, max_nfev=self.max_nfev if prev is not None else 40,
-                            method="trf", x_scale="jac")
+        def solve(x_start, nfev):
+            return least_squares(fun, x_start, jac=jac, bounds=(self.lo, self.hi), loss="soft_l1",
+                                 f_scale=self.w.robust_scale, max_nfev=nfev, method="trf", x_scale="jac")
+
+        res = solve(x0, self.max_nfev if prev is not None else 40)
+        nfev = int(res.nfev)
+        # Seen from above, a curled finger and a straight finger pointing away project alike, so
+        # a warm start can sit in the wrong one. Retry badly fitting fingers from a few canonical
+        # curls and keep whatever explains the image best.
+        proj = self.camera.project(sk.camera_joints(self.shape, res.x[None])[0])
+        for name, root in zip(sk.FINGER_NAMES, sk.FINGER_ROOTS):
+            err = np.linalg.norm(proj[root + 1:root + 4] - obs2d[root + 1:root + 4], axis=1).max()
+            if err < REINIT_FINGER_PX:
+                continue
+            best = res
+            for curl in FINGER_HYPOTHESES:
+                x = res.x.copy()
+                x[sk.FINGER_SLICES[name]] = np.clip([x[sk.FINGER_SLICES[name]][0], *curl],
+                                                    self.lo[sk.FINGER_SLICES[name]], self.hi[sk.FINGER_SLICES[name]])
+                trial = solve(x, REINIT_NFEV)
+                nfev += int(trial.nfev)
+                if trial.cost < best.cost:
+                    best = trial
+            res = best
         pose = res.x
         self._prev = pose.copy()
         J = sk.camera_joints(self.shape, pose[None])[0]
@@ -140,4 +166,4 @@ class PoseFitter:
         if handedness == "left":
             J = J.copy(); J[:, 0] = -J[:, 0]
         rms = float(np.sqrt(np.mean(np.sum((self.camera.project(sk.camera_joints(self.shape, pose[None])[0]) - obs2d) ** 2, axis=1))))
-        return FitResult(pose=pose, joints=J, local=L, rms_px=rms, nfev=int(res.nfev))
+        return FitResult(pose=pose, joints=J, local=L, rms_px=rms, nfev=nfev)

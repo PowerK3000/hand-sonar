@@ -16,13 +16,20 @@ from handctl.handmodel import calibrate
 from handctl.handmodel.fitter import PoseFitter
 from handctl.pose_features import windows
 
-CACHE = Path("data/fits")
 SHAPE_PATH = Path("models/hand_shape.json")
+FIT_VERSION = 2   # bump when the fitter changes; cache dirs are per shape+fitter, never deleted
+CACHE = Path("data/fits")
+
+
+def cache_dir() -> Path:
+    import hashlib
+    h = hashlib.sha1(SHAPE_PATH.read_bytes()).hexdigest()[:10]
+    return CACHE / f"v{FIT_VERSION}-{h}"
 TIPS = (8, 12, 16, 20)
 
 
 def fit_step(path: Path, shape, cam):
-    out = CACHE / path.parent.name / path.name
+    out = cache_dir() / path.parent.name / path.name
     if out.is_file():
         z = np.load(out)
         return z["t"], z["F"]
