@@ -29,6 +29,8 @@ def main(argv: list[str] | None = None) -> int:
     p = argparse.ArgumentParser(description=__doc__, formatter_class=argparse.RawDescriptionHelpFormatter)
     p.add_argument("--seconds", type=float, default=0, help="auto-close after N seconds (0 = until Esc)")
     p.add_argument("--live", action="store_true", help="actually move/click the real mouse (default: dry run)")
+    p.add_argument("--record", action="store_true",
+                   help="save the annotated view (skeleton, readouts, actions) as logs/session-*.avi for review")
     args = p.parse_args(argv)
     import cv2
     cfg = config.load(paths.CONFIG)
@@ -55,6 +57,13 @@ def main(argv: list[str] | None = None) -> int:
     cursor = [0.0, 0.0]
     frames, t_start = deque(maxlen=30), time.monotonic()
     drawn = 0
+    video = None
+    if args.record:
+        video_path = paths.LOGS / f"session-{time.strftime('%Y%m%d-%H%M%S')}.avi"
+        video = cv2.VideoWriter(str(video_path), cv2.VideoWriter_fourcc(*"MJPG"), 12.0, (640, 360))
+        if not video.isOpened():
+            print(f"warning: could not open {video_path} for writing; continuing without video", file=sys.stderr)
+            video = None
     win = ("handctl LIVE - controlling your mouse  (touch keyboard/mouse = pause, Esc = quit)" if args.live
            else "handctl preview (DRY RUN - no input sent)  Esc = quit")
     try:
@@ -108,7 +117,7 @@ def main(argv: list[str] | None = None) -> int:
                     for x, y in pts:
                         cv2.circle(img, (int(x), int(y)), 3, (0, 255, 255), -1)
                 fps = (len(frames) - 1) / (frames[-1] - frames[0]) if len(frames) > 1 else 0
-                lines = [f"{fps:4.1f} fps   {'ENGAGED' if engaged else 'disengaged'}   "
+                lines = [f"{fps:4.1f} fps   {'CLUTCH (fist)' if ctl.clutched else 'ENGAGED' if engaged else 'disengaged'}   "
                          f"virtual cursor {cursor[0]:+.0f},{cursor[1]:+.0f}"]
                 if f is not None:
                     pose = "POINT(scroll)" if index_pointing(f, cfg) else "OPEN" if open_palm(f, cfg) else "-"
@@ -132,10 +141,17 @@ def main(argv: list[str] | None = None) -> int:
                     alpha = max(0.3, 1 - (now - ts) / 4)
                     cv2.putText(img, f"{'DID' if args.live else 'WOULD'}: {label}", (10, img.shape[0] - 20 - 28 * i), cv2.FONT_HERSHEY_SIMPLEX,
                                 0.8, (0, int(255 * alpha), 255), 2)
+                cv2.putText(img, f"t={now - t_start:6.1f}s", (img.shape[1] - 170, 30), cv2.FONT_HERSHEY_SIMPLEX, 0.7,
+                            (255, 255, 0), 2)
+                if video is not None:
+                    video.write(cv2.resize(img, (640, 360)))
                 cv2.imshow(win, img)
                 if cv2.waitKey(1) == 27:
                     break
     finally:
+        if video is not None:
+            video.release()
+            print(f"video: {video_path}")
         if out is not None:
             for a in ctl.release():
                 try:

@@ -101,6 +101,12 @@ class ScrollCfg:
 
 
 @dataclass(frozen=True)
+class ClutchCfg:
+    enabled: bool
+    max_straightness: float
+
+
+@dataclass(frozen=True)
 class WakeCfg:
     enabled: bool
     hold_ms: float
@@ -120,6 +126,7 @@ class Config:
     right_click: RightClickCfg
     drag: DragCfg
     scroll: ScrollCfg
+    clutch: ClutchCfg
     wake: WakeCfg
 
 
@@ -183,6 +190,7 @@ def validate(c: Config) -> Config:
     for name, p in (("click", c.click), ("right_click", c.right_click)):
         _check(0 < p.pinch_close < p.pinch_open,
                f"[gestures.{name}] need 0 < pinch_close < pinch_open (hysteresis)")
+    _check(0 < c.clutch.max_straightness < 1, "[gestures.clutch] max_straightness must be in (0,1)")
     _check(c.right_click.max_hold_ms > 0, "[gestures.right_click] max_hold_ms must be > 0")
     _check(c.drag.start_after_ms > 0 and c.drag.start_move > 0, "[gestures.drag] values must be > 0")
     _check(c.scroll.vertical_axis in ("palm_forward", "palm_normal"),
@@ -206,6 +214,7 @@ def parse(raw: dict) -> Config:
         right_click=_build(RightClickCfg, raw, "gestures.right_click"),
         drag=_build(DragCfg, raw, "gestures.drag"),
         scroll=_build(ScrollCfg, raw, "gestures.scroll"),
+        clutch=_build(ClutchCfg, raw, "gestures.clutch"),
         wake=_build(WakeCfg, raw, "gestures.wake"),
     ))
 

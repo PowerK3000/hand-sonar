@@ -62,7 +62,7 @@ def test_quick_tap_is_one_click_and_cursor_stays_put():
 def test_hold_becomes_drag_and_releases():
     r = Rig()
     r.run(0.3, thumb_to=None)
-    acts = r.run(0.5, thumb_to="index") + r.run(0.3, thumb_to=None)
+    acts = r.run(0.8, thumb_to="index") + r.run(0.3, thumb_to=None)
     assert kinds(acts) == [("down", "left"), ("up", "left")]
 
 
@@ -145,7 +145,7 @@ def test_flick_coasts_then_stops():
 def test_keyboard_mid_drag_releases_button_and_blocks():
     r = Rig()
     r.run(0.3, thumb_to=None)
-    acts = r.run(0.5, thumb_to="index")
+    acts = r.run(0.8, thumb_to="index")
     assert kinds(acts) == [("down", "left")]
     r.gate.note_keyboard(r.t)
     acts = r.run(0.2, thumb_to="index")
@@ -157,7 +157,7 @@ def test_keyboard_mid_drag_releases_button_and_blocks():
 def test_hand_lost_mid_drag_releases_button():
     r = Rig()
     r.run(0.3, thumb_to=None)
-    r.run(0.5, thumb_to="index")
+    r.run(0.8, thumb_to="index")
     acts = r.run(0.1, hand=None)
     assert kinds(acts) == [("up", "left")]
 
@@ -218,7 +218,7 @@ def test_low_confidence_frames_do_nothing():
 def test_paused_releases_and_ignores():
     r = Rig()
     r.run(0.3, thumb_to=None)
-    r.run(0.5, thumb_to="index")
+    r.run(0.8, thumb_to="index")
     r.gate.paused = True
     acts = r.run(0.2, thumb_to="index")
     assert kinds(acts) == [("up", "left")]
@@ -295,3 +295,13 @@ def test_sliding_hand_toward_monitor_no_longer_moves_cursor_vertically():
     acts = r.run(0.6, thumb_to=None, position=(0, 0, 0.5), end_position=(0, 0.05, 0.5))  # image-y slide
     acts += r.run(0.4, thumb_to=None, position=(0, 0.05, 0.5))
     assert abs(sum(a.dy for a in acts if a.kind == "move")) < 30
+
+
+def test_fist_clutch_freezes_cursor_and_blocks_clicks():
+    r = Rig()
+    fist = {"index": 0.95, "middle": 0.95, "ring": 0.95, "pinky": 0.95}
+    r.run(0.3, curl=fist)
+    acts = r.run(0.6, curl=fist, position=(0, 0, 0.5), end_position=(0.08, 0, 0.5))   # reposition hand
+    acts += r.run(0.12, curl=fist, thumb_to="index") + r.run(0.3, curl=fist)
+    assert not [a for a in acts if a.kind in ("move", "click", "down")]
+    assert r.ctl.clutched

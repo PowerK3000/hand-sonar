@@ -61,7 +61,7 @@ vertical_source = "image_y"
 vertical_sign = 1.0
                                   # "image_y": push hand toward/away from the monitor
 height_gain = 5.0                 # hand-length-equivalents per unit of log palm size (~10 cm raise = ~1 hand length of travel)
-smooth_ms = 35                    # cursor glides toward each new target at 125 Hz instead of jumping per camera frame
+smooth_ms = 25                    # cursor glides toward each new target at 125 Hz instead of jumping per camera frame
 # Cursor follows the whole hand (palm centre), relative like a trackpad. Motion is measured in
 # hand lengths, so moving one hand-length gives the same cursor travel at any camera distance.
 pixels_per_hand = 450             # cursor travel for one hand-length of motion at slow speed (was 700: too twitchy live)
@@ -87,8 +87,8 @@ max_hold_ms = 600                 # held longer than this = cancelled, no right 
 # Pinch, hold, move, release: e.g. dragging a browser tab.
 action = "left_drag"
 pose = "thumb_index_pinch"
-start_after_ms = 400              # live taps lasted 0.1-0.3 s
-start_move = 0.15                 # net hand travel (hand lengths) since the pinch closed
+start_after_ms = 600              # side camera: taps were becoming drags at 400 ms / 0.15 (2026-10-22)
+start_move = 0.3                  # net hand travel (hand lengths) since the pinch closed
 
 [gestures.scroll]
 # iPhone-style: slide the extended index finger; the content follows the finger.
@@ -102,6 +102,12 @@ wheel_per_hand = 1200             # wheel units (120 = one notch) per hand-lengt
 momentum = true                   # a quick flick keeps coasting and decays, like iOS
 momentum_decay_per_s = 0.006      # fraction of speed left after 1 s of coasting
 momentum_min_wheel_per_s = 60     # below this speed coasting stops
+
+[gestures.clutch]
+# "Lift the mouse": while you hold a fist the cursor stays put, so you can reposition your hand
+# when you run out of room (like lifting a mouse at the edge of the pad). Open the hand to resume.
+enabled = true
+max_straightness = 0.75           # every finger at least this curled counts as a fist
 
 [gestures.wake]
 action = "wake"                   # show the pointer overlay / wake the screen

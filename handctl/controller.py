@@ -73,6 +73,7 @@ class Controller:
         self._last_t: float | None = None
         self.last_features: HandFeatures | None = None
         self.dropped_degenerate = 0
+        self.clutched = False
 
     def _filter(self, f: HandFeatures) -> HandFeatures:
         names = list(f.straightness)
@@ -114,22 +115,28 @@ class Controller:
                 self._last_t = raw.t
         self.last_features = f
         engaged = self.gate.engaged(t, f.score if f is not None else None)
+        c = self.cfg.clutch
+        self.clutched = bool(c.enabled and f is not None
+                             and max(f.straightness.values()) <= c.max_straightness)
+        # A fist brings the thumb against the index: don't let that read as a pinch or scroll.
+        gestures_on = engaged and not self.clutched
 
         actions: list[Action] = []
         if self.taps is not None:
             tapped = self.taps.update(frame if f is not None else None)
-            if tapped and engaged and not self.scroll.active:
+            if tapped and gestures_on and not self.scroll.active:
                 actions += self._rewind(t)
                 actions.append(Action("click", tapped))
         else:
-            actions += self.left.update(f, engaged, other_busy=self.right.busy)
-            actions += self.right.update(f, engaged, other_busy=self.left.busy)
+            actions += self.left.update(f, gestures_on, other_busy=self.right.busy)
+            actions += self.right.update(f, gestures_on, other_busy=self.left.busy)
+        # Scroll keeps its momentum through a clutch (a fist can't start a scroll: it needs the index out).
         actions += self.scroll.update(f, engaged, t, blocked=self.left.busy or self.right.busy)
 
         if f is None:
             self.pointer.reset()
         else:
-            frozen = not engaged or self.right.busy or self.scroll.active
+            frozen = not engaged or self.clutched or self.right.busy or self.scroll.active
             if self.taps is None:
                 frozen = frozen or self.left.freezes_pointer(f)
             dx, dy = self.pointer.update(f.palm_px, f.hand_px, f.t, frozen, f.palm_size_px)
