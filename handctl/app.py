@@ -19,6 +19,7 @@ from .engagement import EngagementGate, InputActivityHook
 from .hotkey import GlobalHotkey, HotkeyError
 from .output import OutputError, WindowsOutput
 from .tracker import MODEL_URL, Camera, HandTracker
+from .stabilize import LandmarkStabilizer
 from .tap_model import TapModelError, from_config as taps_from_config
 
 log = logging.getLogger("handctl")
@@ -88,9 +89,10 @@ class HandControlApp:
                                   self.cfg.app.num_hands, self.cfg.app.process_width)
             camera = Camera(self.cfg.app.camera_index)
             log.info("camera %dx%d @ %.0f fps", camera.width, camera.height, camera.fps)
+            stab = LandmarkStabilizer()
             while not self._stop.is_set():
                 t, bgr = camera.latest(timeout=2.0)
-                frame = tracker.process(t, bgr)
+                frame = stab(tracker.process(t, bgr))
                 actions = self.controller.step(frame, time.monotonic())
                 with self._lock:
                     for a in actions:

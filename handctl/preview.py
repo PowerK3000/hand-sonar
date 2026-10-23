@@ -17,6 +17,8 @@ from .controller import Controller
 from .engagement import EngagementGate, InputActivityHook
 from .gestures import index_pointing, open_palm
 from .tracker import Camera, HandTracker, TrackerError
+from .stabilize import LandmarkStabilizer
+from .output import OutputError, WindowsOutput
 from .tap_model import TapModelError, from_config as taps_from_config
 
 BONES = [(0, 1), (1, 2), (2, 3), (3, 4), (0, 5), (5, 6), (6, 7), (7, 8), (5, 9), (9, 10), (10, 11), (11, 12),
@@ -26,6 +28,7 @@ BONES = [(0, 1), (1, 2), (2, 3), (3, 4), (0, 5), (5, 6), (6, 7), (7, 8), (5, 9),
 def main(argv: list[str] | None = None) -> int:
     p = argparse.ArgumentParser(description=__doc__, formatter_class=argparse.RawDescriptionHelpFormatter)
     p.add_argument("--seconds", type=float, default=0, help="auto-close after N seconds (0 = until Esc)")
+    p.add_argument("--live", action="store_true", help="actually move/click the real mouse (default: dry run)")
     args = p.parse_args(argv)
     import cv2
     cfg = config.load(paths.CONFIG)
@@ -44,12 +47,15 @@ def main(argv: list[str] | None = None) -> int:
         print(f"error: {e}", file=sys.stderr)
         return 2
     hooks.start()
+    stab = LandmarkStabilizer()
+    out = WindowsOutput() if args.live else None
     paths.LOGS.mkdir(parents=True, exist_ok=True)
     log_path = paths.LOGS / f"preview-{time.strftime('%Y%m%d-%H%M%S')}.csv"
     recent: deque[tuple[float, str]] = deque(maxlen=6)
     cursor = [0.0, 0.0]
     frames, t_start = deque(maxlen=30), time.monotonic()
-    win = "handctl preview (DRY RUN - no input sent)  Esc = quit"
+    win = ("handctl LIVE - controlling your mouse  (touch keyboard/mouse = pause, Esc = quit)" if args.live
+           else "handctl preview (DRY RUN - no input sent)  Esc = quit")
     try:
         with open(log_path, "w", newline="") as fh:
             w = csv.writer(fh)
@@ -57,9 +63,15 @@ def main(argv: list[str] | None = None) -> int:
                         "s_pinky", "spread", "idx_x", "idx_y", "idx_z", "palm_x", "palm_y", "hand_px", "actions"])
             while not args.seconds or time.monotonic() - t_start < args.seconds:
                 t, bgr = camera.latest(timeout=2.0)
-                frame = tracker.process(t, bgr)
+                frame = stab(tracker.process(t, bgr))
                 now = time.monotonic()
                 actions = ctl.step(frame, now)
+                if out is not None:
+                    for a in actions:
+                        try:
+                            out.apply(a)
+                        except OutputError:
+                            pass  # elevated window focused (UIPI); skip rather than crash
                 frames.append(now)
                 f = ctl.last_features
                 engaged = gate.engaged(now, f.score if f else None)
@@ -109,12 +121,19 @@ def main(argv: list[str] | None = None) -> int:
                     cv2.putText(img, line, (10, 24 * (i + 1)), cv2.FONT_HERSHEY_SIMPLEX, 0.6, (255, 255, 255), 1)
                 for i, (ts, label) in enumerate(reversed(recent)):
                     alpha = max(0.3, 1 - (now - ts) / 4)
-                    cv2.putText(img, f"WOULD: {label}", (10, img.shape[0] - 20 - 28 * i), cv2.FONT_HERSHEY_SIMPLEX,
+                    cv2.putText(img, f"{'DID' if args.live else 'WOULD'}: {label}", (10, img.shape[0] - 20 - 28 * i), cv2.FONT_HERSHEY_SIMPLEX,
                                 0.8, (0, int(255 * alpha), 255), 2)
                 cv2.imshow(win, img)
                 if cv2.waitKey(1) == 27:
                     break
     finally:
+        if out is not None:
+            for a in ctl.release():
+                try:
+                    out.apply(a)
+                except OutputError:
+                    pass
+            out.release_all()
         camera.close()
         tracker.close()
         hooks.stop()
