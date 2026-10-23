@@ -68,7 +68,14 @@ SESSION_PROTOCOL = [
     Step("cursor", 30, "Move your whole hand around as if steering the cursor. No taps."),
     Step("face", 30, "Normal non-command stuff: touch face, scratch head, grab a drink, reach around."),
 ]
-PROTOCOLS = {"tuning": PROTOCOL, "train": TRAIN_PROTOCOL, "session": SESSION_PROTOCOL}
+# Hand scan for the personal hand model (handctl.handmodel.calibrate): many orientations and
+# finger configurations so every bone is seen both face-on and edge-on (~75 s).
+SCAN_PROTOCOL = [
+    Step("scan_rotate", 25, "Fingers spread. SLOWLY rotate your hand: palm down, sideways, palm up, tilt forward/back."),
+    Step("scan_curl", 20, "Slowly curl all fingers into a loose fist and open again, a few times, turning your wrist a bit."),
+    Step("scan_thumb", 25, "Touch thumb tip to each fingertip in turn (index, middle, ring, pinky), slowly, repeat."),
+]
+PROTOCOLS = {"tuning": PROTOCOL, "train": TRAIN_PROTOCOL, "session": SESSION_PROTOCOL, "scan": SCAN_PROTOCOL}
 
 
 def _draw(cv2, img, frame, step: Step, remaining: float, beat_on: bool, idx: int, total: int):

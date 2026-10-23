@@ -5,3 +5,4 @@ data/recordings/
 logs/
 logs_*.txt
 models/
+data/fits/
