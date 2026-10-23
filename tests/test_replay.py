@@ -38,5 +38,5 @@ def test_replay_flags_clicks_during_non_command_step(tmp_path):
     cfg = replace(cfg, taps=replace(cfg.taps, mode="pinch"))
     path = _record(tmp_path, "rest", [(0.5, {}), (0.12, {"thumb_to": "index"}), (1.0, {}), (0.5, None)], [])
     r = replay.replay_file(path, cfg)
-    assert r["false"] == {("click", "left"): 1}
+    assert r["false"] == {("down", "left"): 1}
     assert r["visible"] < 1.0

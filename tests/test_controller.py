@@ -51,11 +51,11 @@ def kinds(actions):
     return [(a.kind, a.button) for a in actions if a.kind not in ("move", "scroll")]
 
 
-def test_quick_tap_is_one_click_and_cursor_stays_put():
+def test_quick_tap_presses_immediately_and_cursor_stays_put():
     r = Rig()
     r.run(0.3, thumb_to=None)
     acts = r.run(0.12, thumb_to="index") + r.run(0.3, thumb_to=None)
-    assert kinds(acts) == [("click", "left")]
+    assert kinds(acts) == [("down", "left"), ("up", "left")]          # press on touch, release on part
     assert not [a for a in acts if a.kind == "move"]
 
 
@@ -83,14 +83,14 @@ def test_right_click_does_not_fire_left():
     r = Rig()
     r.run(0.3, thumb_to=None)
     acts = r.run(0.15, thumb_to="middle") + r.run(0.3, thumb_to=None)
-    assert kinds(acts) == [("click", "right")]
+    assert kinds(acts) == [("down", "right"), ("up", "right")]
 
 
-def test_long_middle_pinch_cancels_right_click():
+def test_long_middle_pinch_holds_right_button():
     r = Rig()
     r.run(0.3, thumb_to=None)
     acts = r.run(1.0, thumb_to="middle") + r.run(0.3, thumb_to=None)
-    assert kinds(acts) == []
+    assert kinds(acts) == [("down", "right"), ("up", "right")]
 
 
 def test_hysteresis_no_double_click_when_hovering_near_threshold():
@@ -101,7 +101,7 @@ def test_hysteresis_no_double_click_when_hovering_near_threshold():
     for g in (0.019, 0.017, 0.020, 0.016, 0.021, 0.018):
         acts += r.run(1 / FPS, thumb_to="index", gap=g)
     acts += r.run(0.3, thumb_to=None)
-    assert kinds(acts) == [("click", "left")]
+    assert kinds(acts) == [("down", "left"), ("up", "left")]
 
 
 def _finger_slide(r, start_curl, end_curl, seconds):
@@ -191,7 +191,7 @@ def test_click_works_from_off_angles(angles):
     r = Rig(rot=synth.rotation(*angles))
     r.run(0.3, thumb_to=None)
     acts = r.run(0.12, thumb_to="index") + r.run(0.3, thumb_to=None)
-    assert kinds(acts) == [("click", "left")]
+    assert kinds(acts) == [("down", "left"), ("up", "left")]
 
 
 def test_spread_palm_still_wakes_once():
@@ -225,7 +225,7 @@ def test_paused_releases_and_ignores():
     assert kinds(r.run(0.5, thumb_to=None) + r.run(0.12, thumb_to="index")) == []
 
 
-def test_tap_with_tracker_jitter_is_click_not_drag():
+def test_tap_with_tracker_jitter_is_press_release_without_cursor_motion():
     # Live bug: summed frame-to-frame jitter crossed the drag-move threshold during real taps.
     r = Rig()
     rng = np.random.default_rng(5)
@@ -235,7 +235,7 @@ def test_tap_with_tracker_jitter_is_click_not_drag():
         jitter = tuple(np.array([0, 0, 0.5]) + rng.normal(0, 0.002, 3))
         acts += r.run(1 / FPS, thumb_to="index", position=jitter)
     acts += r.run(0.3, thumb_to=None)
-    assert kinds(acts) == [("click", "left")]
+    assert kinds(acts) == [("down", "left"), ("up", "left")]
 
 
 def test_flickering_handedness_label_is_latched():

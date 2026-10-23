@@ -79,13 +79,7 @@ class PinchCfg:
 
 
 @dataclass(frozen=True)
-class RightClickCfg(PinchCfg):
-    max_hold_ms: float
-
-
-@dataclass(frozen=True)
 class DragCfg:
-    start_after_ms: float
     start_move: float
 
 
@@ -124,7 +118,7 @@ class Config:
     poses: PosesCfg
     pointer: PointerCfg
     click: PinchCfg
-    right_click: RightClickCfg
+    right_click: PinchCfg
     drag: DragCfg
     scroll: ScrollCfg
     clutch: ClutchCfg
@@ -192,8 +186,7 @@ def validate(c: Config) -> Config:
         _check(0 < p.pinch_close < p.pinch_open,
                f"[gestures.{name}] need 0 < pinch_close < pinch_open (hysteresis)")
     _check(0 < c.clutch.max_straightness < 1, "[gestures.clutch] max_straightness must be in (0,1)")
-    _check(c.right_click.max_hold_ms > 0, "[gestures.right_click] max_hold_ms must be > 0")
-    _check(c.drag.start_after_ms > 0 and c.drag.start_move > 0, "[gestures.drag] values must be > 0")
+    _check(c.drag.start_move > 0, "[gestures.drag] start_move must be > 0")
     _check(c.scroll.vertical_axis in ("palm_forward", "palm_normal"),
            "[gestures.scroll] vertical_axis must be palm_forward or palm_normal")
     _check(c.scroll.wheel_per_hand > 0, "[gestures.scroll] wheel_per_hand must be > 0")
@@ -212,7 +205,7 @@ def parse(raw: dict) -> Config:
         poses=_build(PosesCfg, raw, "poses"),
         pointer=_build(PointerCfg, raw, "pointer"),
         click=_build(PinchCfg, raw, "gestures.click"),
-        right_click=_build(RightClickCfg, raw, "gestures.right_click"),
+        right_click=_build(PinchCfg, raw, "gestures.right_click"),
         drag=_build(DragCfg, raw, "gestures.drag"),
         scroll=_build(ScrollCfg, raw, "gestures.scroll"),
         clutch=_build(ClutchCfg, raw, "gestures.clutch"),

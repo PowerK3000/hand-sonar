@@ -175,5 +175,4 @@ class Controller:
     def release(self) -> list[Action]:
         """Drop everything held (pause/exit)."""
         self.scroll.stop()
-        self.right.pressed = False
-        return self.left.release()
+        return self.left.release() + self.right.release()

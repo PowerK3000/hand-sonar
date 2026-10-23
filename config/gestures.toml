@@ -76,21 +76,20 @@ action = "left_click"
 pose = "thumb_index_pinch"
 pinch_close = 0.16                # thumb-index tip distance to count as touching (live taps reached 0.07-0.13)
 pinch_open = 0.26                 # must open past this to release (hysteresis, no double fires)
-# Released before drag.start_after_ms without moving drag.start_move -> click; otherwise drag.
 
 [gestures.right_click]
 action = "right_click"
 pose = "thumb_middle_pinch"
 pinch_close = 0.16
 pinch_open = 0.26
-max_hold_ms = 600                 # held longer than this = cancelled, no right click
 
 [gestures.drag]
 # Pinch, hold, move, release: e.g. dragging a browser tab.
 action = "left_drag"
 pose = "thumb_index_pinch"
-start_after_ms = 600              # side camera: taps were becoming drags at 400 ms / 0.15 (2026-10-22)
-start_move = 0.3                  # net hand travel (hand lengths) since the pinch closed
+# Pinch = button held (pressed on touch, released on part). The cursor stays frozen while pressed
+# until the hand moves this far (hand lengths) since the touch, then it drags.
+start_move = 0.3
 
 [gestures.scroll]
 # iPhone-style: slide the extended index finger; the content follows the finger.

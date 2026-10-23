@@ -22,7 +22,7 @@ from .engagement import EngagementGate
 from .hand import HandFrame
 from .tap_model import from_config as taps_from_config
 
-EXPECT = {"click": ("click", "left"), "right_click": ("click", "right"), "drag": ("down", "left"),
+EXPECT = {"click": ("down", "left"), "right_click": ("down", "right"), "drag": ("down", "left"),
           "scroll_up": ("scroll", "down"), "scroll_down": ("scroll", "up"),  # natural: finger up = page down
           "flick": ("scroll", None), "wake": ("wake", None)}
 HIT_WINDOW_S = 1.2
