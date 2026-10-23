@@ -75,7 +75,18 @@ SCAN_PROTOCOL = [
     Step("scan_curl", 20, "Slowly curl all fingers into a loose fist and open again, a few times, turning your wrist a bit."),
     Step("scan_thumb", 25, "Touch thumb tip to each fingertip in turn (index, middle, ring, pinky), slowly, repeat."),
 ]
-PROTOCOLS = {"tuning": PROTOCOL, "train": TRAIN_PROTOCOL, "session": SESSION_PROTOCOL, "scan": SCAN_PROTOCOL}
+# Candidate click gestures, all done with the hand resting: which one does an overhead camera see
+# most clearly? Scored by tools/gesture_snr.py (motion vs rest jitter). ~2.6 min.
+CANDIDATE_PROTOCOL = [
+    Step("rest", 20, "Rest your hand naturally where you'd use it. Don't move."),
+    Step("cand_thumb_index", 20, "On each BEAT: quick tap thumb to INDEX tip (current click).", 1.4),
+    Step("cand_thumb_out", 20, "On each BEAT: swing your THUMB out sideways away from your hand, and back.", 1.4),
+    Step("cand_index_side", 20, "On each BEAT: flick your INDEX finger sideways toward the thumb, and back.", 1.4),
+    Step("cand_pinky_out", 20, "On each BEAT: swing your PINKY out sideways, and back.", 1.4),
+    Step("cand_v_spread", 20, "On each BEAT: spread INDEX and MIDDLE apart into a V, and back together.", 1.4),
+    Step("cand_index_lift", 20, "On each BEAT: lift your INDEX fingertip up off the desk, and back down.", 1.4),
+]
+PROTOCOLS = {"candidates": CANDIDATE_PROTOCOL, "tuning": PROTOCOL, "train": TRAIN_PROTOCOL, "session": SESSION_PROTOCOL, "scan": SCAN_PROTOCOL}
 
 
 def _draw(cv2, img, frame, step: Step, remaining: float, beat_on: bool, idx: int, total: int):
