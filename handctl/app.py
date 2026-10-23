@@ -162,8 +162,30 @@ class HandControlApp:
         return 0
 
 
+_MUTEX_NAME = r"Local\HandControl.hand-sonar"
+_ERROR_ALREADY_EXISTS = 183
+
+
+def _single_instance():
+    """Named mutex held for the process lifetime; None if another instance already holds it.
+    With start-at-login plus manual launches, two copies would fight over the camera."""
+    import ctypes
+    k = ctypes.WinDLL("kernel32", use_last_error=True)
+    handle = k.CreateMutexW(None, False, _MUTEX_NAME)
+    if not handle:
+        raise OSError(ctypes.get_last_error(), "CreateMutexW failed")
+    if ctypes.get_last_error() == _ERROR_ALREADY_EXISTS:
+        k.CloseHandle(handle)
+        return None
+    return handle
+
+
 def main() -> int:
     setup_logging()
+    mutex = _single_instance()
+    if mutex is None:
+        log.info("another instance is already running; exiting")
+        return 0
     try:
         cfg = config.load(paths.CONFIG)
     except config.ConfigError as e:
