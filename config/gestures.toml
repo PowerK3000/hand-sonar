@@ -74,14 +74,25 @@ deadzone = 0.04                   # leash radius in hand lengths: the cursor ign
 [gestures.click]
 action = "left_click"
 pose = "thumb_index_pinch"
-pinch_close = 0.16                # thumb-index tip distance to count as touching (live taps reached 0.07-0.13)
-pinch_open = 0.26                 # must open past this to release (hysteresis, no double fires)
+# Front camera (front1, 2026-10-22): in the IMAGE every tap reached 0.05-0.16 while between taps
+# stayed >= 0.29; MediaPipe's 3D gap only reached 0.13-0.39, so the old 3D threshold 0.16 missed
+# most taps ("unresponsive"). Distances in image hand lengths (wrist -> middle knuckle).
+metric = "2d"
+pinch_close = 0.20
+pinch_open = 0.27                 # must open past this to release (hysteresis, no double fires)
+arm_s = 0.1
+snap_s = 0.25
+still_max = 1.5                   # hand moving faster than this (hand lengths/s): no new presses
 
 [gestures.right_click]
 action = "right_click"
 pose = "thumb_middle_pinch"
-pinch_close = 0.16
-pinch_open = 0.26
+metric = "2d"
+pinch_close = 0.21                # right taps reached 0.05-0.23 in the image; between taps median ~0.30
+pinch_open = 0.25                 # 0.29 was rarely re-crossed between right taps (18 vs 11 of 32 hit, front1 replay)
+arm_s = 0.1
+snap_s = 0.25
+still_max = 1.5
 
 [gestures.drag]
 # Pinch, hold, move, release: e.g. dragging a browser tab.

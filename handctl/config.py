@@ -74,8 +74,12 @@ class PointerCfg:
 
 @dataclass(frozen=True)
 class PinchCfg:
+    metric: str               # "2d": thumb-finger gap in the image; "3d": MediaPipe world (overhead-camera era)
     pinch_close: float
     pinch_open: float
+    arm_s: float              # fingers must be clearly apart this long before a touch counts
+    snap_s: float             # ...and close within this time of last being apart (a tap snaps; a resting thumb drifts)
+    still_max: float          # hand speed (hand lengths/s) above which new touches are ignored
 
 
 @dataclass(frozen=True)
@@ -185,6 +189,8 @@ def validate(c: Config) -> Config:
     for name, p in (("click", c.click), ("right_click", c.right_click)):
         _check(0 < p.pinch_close < p.pinch_open,
                f"[gestures.{name}] need 0 < pinch_close < pinch_open (hysteresis)")
+        _check(p.metric in ("2d", "3d"), f"[gestures.{name}] metric must be 2d or 3d")
+        _check(p.arm_s >= 0 and p.snap_s > 0 and p.still_max > 0, f"[gestures.{name}] timing values out of range")
     _check(0 < c.clutch.max_straightness < 1, "[gestures.clutch] max_straightness must be in (0,1)")
     _check(c.drag.start_move > 0, "[gestures.drag] start_move must be > 0")
     _check(c.scroll.vertical_axis in ("palm_forward", "palm_normal"),

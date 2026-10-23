@@ -26,19 +26,61 @@ def open_palm(f: HandFeatures, cfg: Config) -> bool:
             and f.spread_deg >= cfg.wake.min_spread_deg)
 
 
+class Touch:
+    """Deliberate thumb-finger touch detector shared by both buttons.
+
+    A touch = the gap was clearly open for `arm_s`, then snapped closed within `snap_s` while the
+    hand was roughly still. On Kayden's front-camera recording a relaxed thumb drifts across the
+    index in the image (false clicks); deliberate taps snap closed from open.
+    """
+
+    def __init__(self, cfg) -> None:
+        self.cfg = cfg
+        self._open_since: float | None = None
+        self._last_open: float | None = None
+
+    def reset(self) -> None:
+        self._open_since = self._last_open = None
+
+    def gap(self, f: HandFeatures, own: str) -> tuple[float, float]:
+        """(this finger's gap, the other finger's gap) in the configured metric."""
+        if self.cfg.metric == "2d":
+            pair = (f.pinch_index_2d, f.pinch_middle_2d)
+        else:
+            pair = (f.pinch_index, f.pinch_middle)
+        return pair if own == "index" else (pair[1], pair[0])
+
+    def touched(self, f: HandFeatures, own: str, hand_speed: float) -> bool:
+        c = self.cfg
+        d, other = self.gap(f, own)
+        if d > c.pinch_open:
+            if self._open_since is None:
+                self._open_since = f.t
+            self._last_open = f.t
+            return False
+        if self._last_open is None or f.t - self._last_open > c.snap_s:
+            self._open_since = None          # drifted closed slowly: not a tap; must reopen
+            return False
+        armed = self._open_since is not None and self._last_open - self._open_since >= c.arm_s
+        if armed and d < c.pinch_close and d < other and hand_speed <= c.still_max:
+            self.reset()
+            return True
+        return False
+
+    def opened(self, f: HandFeatures, own: str) -> bool:
+        return self.gap(f, own)[0] > self.cfg.pinch_open
+
+
 class LeftPinch:
-    """Thumb-index works like a real left mouse button: pressed the moment the fingers touch,
-    released when they part. Clicking used to wait for the release (to tell clicks from drags),
-    which made every click feel late. Drag is now simply: touch, move, release. The cursor stays
-    frozen while pressed until the hand clearly moves, so a click can't become a micro-drag."""
+    """Thumb-index works like a real left mouse button: pressed the moment a deliberate touch is
+    seen, released when the fingers part. Drag = touch, move, release. The cursor stays frozen
+    while pressed until the hand clearly moves, so a click can't become a micro-drag."""
 
     def __init__(self, cfg: Config) -> None:
         self.cfg = cfg
         self.state = "idle"          # idle | pressed (cursor frozen) | dragging (cursor follows)
-        self._origin: np.ndarray | None = None  # palm position (px) when the fingers touched
-        # A touch only counts after the fingers were seen apart while engaged: a pinch that began
-        # while paused (typing, clutch, hand out of view) must not press when control resumes.
-        self._armed = False
+        self._origin: np.ndarray | None = None
+        self.touch = Touch(cfg.click)
 
     @property
     def busy(self) -> bool:
@@ -49,26 +91,24 @@ class LeftPinch:
 
     def release(self) -> list[Action]:
         held = self.state != "idle"
-        self.state, self._armed = "idle", False
+        self.state = "idle"
+        self.touch.reset()                   # after any interruption the fingers must reopen first
         return [Action("up", "left")] if held else []
 
-    def update(self, f: HandFeatures | None, engaged: bool, other_busy: bool) -> list[Action]:
+    def update(self, f: HandFeatures | None, engaged: bool, other_busy: bool,
+               hand_speed: float = 0.0) -> list[Action]:
         if f is None or not engaged:
             return self.release()
-        c, d = self.cfg.click, f.pinch_index
         if self.state == "idle":
-            if d > c.pinch_open:
-                self._armed = True
-            # Claim the pinch only if the thumb is nearer the index than the middle finger.
-            if self._armed and d < c.pinch_close and d < f.pinch_middle and not other_busy:
+            if self.touch.touched(f, "index", hand_speed) and not other_busy:
                 self.state, self._origin = "pressed", f.palm_px.copy()
                 return [Action("down", "left")]
             return []
-        if d > c.pinch_open:
+        if self.touch.opened(f, "index"):
             self.state = "idle"
+            self.touch.touched(f, "index", hand_speed)   # starts the open timer for the next tap
             return [Action("up", "left")]
         if self.state == "pressed":
-            # Net displacement since the touch, not summed jitter.
             moved = float(np.linalg.norm(f.palm_px - self._origin)) / f.hand_px
             if moved >= self.cfg.drag.start_move:
                 self.state = "dragging"
@@ -76,34 +116,34 @@ class LeftPinch:
 
 
 class RightPinch:
-    """Thumb-middle works like a real right mouse button: down on touch, up on release."""
+    """Thumb-middle works like a real right mouse button: down on a deliberate touch, up on release."""
 
     def __init__(self, cfg: Config) -> None:
         self.cfg = cfg
         self.pressed = False
-        self._armed = False          # see LeftPinch._armed
+        self.touch = Touch(cfg.right_click)
 
     @property
     def busy(self) -> bool:
         return self.pressed
 
     def release(self) -> list[Action]:
-        held, self.pressed, self._armed = self.pressed, False, False
+        held, self.pressed = self.pressed, False
+        self.touch.reset()
         return [Action("up", "right")] if held else []
 
-    def update(self, f: HandFeatures | None, engaged: bool, other_busy: bool) -> list[Action]:
+    def update(self, f: HandFeatures | None, engaged: bool, other_busy: bool,
+               hand_speed: float = 0.0) -> list[Action]:
         if f is None or not engaged:
             return self.release()
-        c, d = self.cfg.right_click, f.pinch_middle
         if not self.pressed:
-            if d > c.pinch_open:
-                self._armed = True
-            if self._armed and d < c.pinch_close and d < f.pinch_index and not other_busy:
+            if self.touch.touched(f, "middle", hand_speed) and not other_busy:
                 self.pressed = True
                 return [Action("down", "right")]
             return []
-        if d > c.pinch_open:
+        if self.touch.opened(f, "middle"):
             self.pressed = False
+            self.touch.touched(f, "middle", hand_speed)
             return [Action("up", "right")]
         return []
 

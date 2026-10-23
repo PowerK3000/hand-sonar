@@ -77,12 +77,13 @@ class Controller:
 
     def _filter(self, f: HandFeatures) -> HandFeatures:
         names = list(f.straightness)
-        shape = np.concatenate([[f.pinch_index, f.pinch_middle],
+        shape = np.concatenate([[f.pinch_index, f.pinch_middle, f.pinch_index_2d, f.pinch_middle_2d],
                                 [f.straightness[n] for n in names], f.index_local])
         s = self._shape_filter(shape, f.t)
         return replace(f, pinch_index=float(s[0]), pinch_middle=float(s[1]),
-                       straightness={n: float(v) for n, v in zip(names, s[2:2 + len(names)])},
-                       index_local=s[2 + len(names):])
+                       pinch_index_2d=float(s[2]), pinch_middle_2d=float(s[3]),
+                       straightness={n: float(v) for n, v in zip(names, s[4:4 + len(names)])},
+                       index_local=s[4 + len(names):])
 
     def _filter_palm(self, f: HandFeatures) -> HandFeatures:
         """Cursor path: palm position/size get their own (heavier) smoothing."""
@@ -135,8 +136,9 @@ class Controller:
                 actions += self._rewind(t)
                 actions.append(Action("click", tapped))
         else:
-            actions += self.left.update(f, gestures_on, other_busy=self.right.busy)
-            actions += self.right.update(f, gestures_on, other_busy=self.left.busy)
+            hand_speed = self.pointer.last_speed
+            actions += self.left.update(f, gestures_on, other_busy=self.right.busy, hand_speed=hand_speed)
+            actions += self.right.update(f, gestures_on, other_busy=self.left.busy, hand_speed=hand_speed)
         # Scroll keeps its momentum through a clutch (a fist can't start a scroll: it needs the index out).
         actions += self.scroll.update(f, engaged, t, blocked=self.left.busy or self.right.busy)
 
