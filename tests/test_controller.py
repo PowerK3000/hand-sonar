@@ -274,8 +274,11 @@ def test_cursor_leash_swallows_jitter_but_passes_real_motion():
     assert abs(sum(a.dx for a in acts if a.kind == "move")) > 100
 
 
+HEIGHT_CFG = replace(CFG, pointer=replace(CFG.pointer, vertical_source="height"))
+
+
 def test_raising_hand_toward_overhead_camera_moves_cursor_up():
-    r = Rig()
+    r = Rig(HEIGHT_CFG)
     r.run(0.3, thumb_to=None, position=(0, 0, 0.5))
     acts = r.run(0.6, thumb_to=None, position=(0, 0, 0.5), end_position=(0, 0, 0.42))   # ~8 cm closer
     acts += r.run(0.4, thumb_to=None, position=(0, 0, 0.42))
@@ -284,7 +287,7 @@ def test_raising_hand_toward_overhead_camera_moves_cursor_up():
 
 
 def test_sliding_hand_toward_monitor_no_longer_moves_cursor_vertically():
-    r = Rig()
+    r = Rig(HEIGHT_CFG)
     r.run(0.3, thumb_to=None, position=(0, 0, 0.5))
     acts = r.run(0.6, thumb_to=None, position=(0, 0, 0.5), end_position=(0, 0.05, 0.5))  # image-y slide
     acts += r.run(0.4, thumb_to=None, position=(0, 0.05, 0.5))
