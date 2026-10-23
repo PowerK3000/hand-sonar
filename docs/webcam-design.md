@@ -120,3 +120,20 @@ length over many orientations) + per-bone depth from known length (Taylor recons
   version; multi-day build, uncertain payoff for left taps.
 - Strong side result: **thumb-to-middle contact is 95% separable in plain 2D** from this
   camera. Thumb-to-index is not (the thumb naturally lies across the index from above).
+
+## Full personal hand model (built 2026-10-22, Kayden's choice)
+`handctl/handmodel/`: kinematic skeleton (27 DoF, joint limits), per-frame fitter (robust 2D +
+weak MediaPipe-3D prior + temporal prior + coupling, warm-started), calibration (MediaPipe-median
+init + alternating pose/shape refinement), Numba FK (8.7 ms/frame). Scan protocol:
+`scan_hand.bat` (record ~75 s rotation/curl/thumb-touch scan, then calibrate).
+- Synthetic: occluded pinch that MediaPipe-style 3D puts 43.5 mm apart -> model 4.8 mm.
+  Calibration halves proportion error vs a generic hand.
+- Real, single-frame tap separability: s2 left click (not the calibration sitting)
+  MediaPipe 9% -> model 82%; but s2 right 64% -> 36%, t1 left 36% -> 29%. Calibrated from tap
+  sessions, not a scan: proportions look off (index proximal 30 mm), calib rms ~12 px.
+- Leave-one-sitting-out tap model on model features: 14/128 hits, 9 false/stray
+  (raw keypoints: 21/128, 25). Fewer false triggers, not more hits.
+- **Binding constraint is data**: 3 sittings, two with 11 taps per class. No feature set can
+  generalise across sittings from that. Plan: one hand scan (`scan_hand.bat`), then 3-4 short
+  sittings on different days (`record_session.bat`), re-run `python -m handctl.evaluate_taps`
+  and `python -m tools.model_features_eval`. Live integration of the fitter waits for a win.
