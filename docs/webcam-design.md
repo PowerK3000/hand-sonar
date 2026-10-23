@@ -154,3 +154,13 @@ init + alternating pose/shape refinement), Numba FK (8.7 ms/frame). Scan protoco
   **37/128 taps, 12 false/stray** vs raw keypoints 21/128, 25 (s1 left 10/11, t1 left 25/42
   trained on only 22 left taps). ~1.8x hits, half the false triggers; ship bar not met.
   Right-click doesn't transfer yet. Bottleneck remains data: 3 sittings, 2 of them tiny.
+
+### Jitter stabiliser + 4th sitting (2026-10-22)
+- Rest jitter, raw MediaPipe: ~2.1% of hand length per frame (2.3-2.5 px), fingertips spiking
+  to ~15 px; 3D ~2 mm/frame. `handctl/stabilize.py` (One Euro in hand units + per-point leash):
+  beta 10, leash 0.03 -> rest jitter ~45% of raw, tap motion ~96% preserved (tools/stabilizer_eval.py).
+- Cross-sitting tap model, 4 sittings (192 taps):
+  unstabilised 55/192, 15 false/stray; stabilised 65/192, 28 false/stray. New sitting
+  (t-20261022-1743, hand 50% larger in frame, different position) 0/32 either way.
+- Conclusion so far: overhead-camera resting-hand taps do not generalise across sittings at
+  this data scale, even with personal model + stabilisation.

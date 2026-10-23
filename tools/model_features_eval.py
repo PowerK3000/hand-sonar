@@ -17,7 +17,7 @@ from handctl.handmodel.fitter import PoseFitter
 from handctl.pose_features import windows
 
 SHAPE_PATH = Path("models/hand_shape.json")
-FIT_VERSION = 2   # bump when the fitter changes; cache dirs are per shape+fitter, never deleted
+FIT_VERSION = 3   # 3: landmark stabiliser before fitting   # bump when the fitter changes; cache dirs are per shape+fitter, never deleted
 CACHE = Path("data/fits")
 
 
@@ -34,17 +34,21 @@ def fit_step(path: Path, shape, cam):
         z = np.load(out)
         return z["t"], z["F"]
     z = np.load(path, allow_pickle=False)
-    fitter, latch, last = PoseFitter(shape, cam), HandednessLatch(), None
+    from handctl.hand import HandFrame
+    from handctl.stabilize import LandmarkStabilizer
+    fitter, latch, last, stab = PoseFitter(shape, cam), HandednessLatch(), None, LandmarkStabilizer()
     t, F = [], []
     for i in range(len(z["t"])):
         if not z["present"][i]:
-            fitter.reset(); latch.reset(); continue
+            fitter.reset(); latch.reset(); stab(None); continue
         ti = float(z["t"][i])
         if last is not None and ti - last > 0.25:
             fitter.reset()
         last = ti
-        im, w = z["image"][i], z["world"][i]
-        r = fitter.fit(im, w, latch(str(z["handedness"][i])))
+        side = latch(str(z["handedness"][i]))
+        fr = stab(HandFrame(t=ti, world=z["world"][i], image=z["image"][i], handedness=side, score=float(z["score"][i])))
+        im, w = fr.image, fr.world
+        r = fitter.fit(im, w, side)
         size = np.linalg.norm(r.local[9] - r.local[0])
         gaps = [np.linalg.norm(r.local[4] - r.local[k]) / size for k in TIPS]
         ref = np.linalg.norm(im[9] - im[0])
