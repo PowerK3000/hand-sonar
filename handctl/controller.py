@@ -57,6 +57,7 @@ class Controller:
         fc = cfg.filter
         self._shape_filter = OneEuroFilter(fc.min_cutoff_hz, fc.beta, fc.d_cutoff_hz)
         self._palm_filter = OneEuroFilter(fc.palm_min_cutoff_hz, fc.palm_beta, fc.d_cutoff_hz)
+        self._size_filter = OneEuroFilter(fc.palm_min_cutoff_hz, fc.palm_beta, fc.d_cutoff_hz)
         self.pointer = Pointer(cfg.pointer)
         self.left = LeftPinch(cfg)
         self.right = RightPinch(cfg)
@@ -73,13 +74,17 @@ class Controller:
                                 [f.straightness[n] for n in names], f.index_local])
         s = self._shape_filter(shape, f.t)
         palm_hand = self._palm_filter(np.append(f.palm_px, f.hand_px), f.t, speed_scale=f.hand_px)
+        # Log palm size is dimensionless (0.1 = 10% bigger), so it filters in its own units.
+        log_size = self._size_filter(np.array([np.log(max(f.palm_size_px, 1e-6))]), f.t)[0]
         return replace(f, pinch_index=float(s[0]), pinch_middle=float(s[1]),
                        straightness={n: float(v) for n, v in zip(names, s[2:2 + len(names)])},
-                       index_local=s[2 + len(names):], palm_px=palm_hand[:2], hand_px=float(palm_hand[2]))
+                       index_local=s[2 + len(names):], palm_px=palm_hand[:2], hand_px=float(palm_hand[2]),
+                       palm_size_px=float(np.exp(log_size)))
 
     def _reset_tracking(self) -> None:
         self._shape_filter.reset()
         self._palm_filter.reset()
+        self._size_filter.reset()
         self.pointer.reset()
 
     def step(self, frame: HandFrame | None, t: float) -> list[Action]:
@@ -121,7 +126,7 @@ class Controller:
             frozen = not engaged or self.right.busy or self.scroll.active
             if self.taps is None:
                 frozen = frozen or self.left.freezes_pointer(f)
-            dx, dy = self.pointer.update(f.palm_px, f.hand_px, f.t, frozen)
+            dx, dy = self.pointer.update(f.palm_px, f.hand_px, f.t, frozen, f.palm_size_px)
             if dx or dy:
                 actions.append(Action("move", dx=dx, dy=dy))
                 self._moves.append((t, dx, dy))

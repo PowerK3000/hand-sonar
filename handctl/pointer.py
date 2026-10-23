@@ -25,6 +25,7 @@ class Pointer:
         self._pos = np.zeros(2)
         self._prev_px: np.ndarray | None = None
         self._prev_hand: float = 0.0
+        self._prev_size: float = 0.0
         self._prev_t = 0.0
         self.last_step = 0.0     # hand lengths moved in the last frame (used by drag detection)
         self.last_speed = 0.0    # hand lengths / s
@@ -34,16 +35,21 @@ class Pointer:
         self._anchor = None
         self.last_step = self.last_speed = 0.0
 
-    def update(self, palm_px: np.ndarray, hand_px: float, t: float, frozen: bool) -> tuple[float, float]:
+    def update(self, palm_px: np.ndarray, hand_px: float, t: float, frozen: bool,
+               palm_size_px: float = 0.0) -> tuple[float, float]:
         """Return the cursor move in screen pixels for this frame (0, 0 when frozen)."""
         if hand_px <= 0:
             raise ValueError("hand_px must be > 0")
         if self._prev_px is None:
-            self._prev_px, self._prev_hand, self._prev_t = palm_px.copy(), hand_px, t
+            self._prev_px, self._prev_hand, self._prev_t, self._prev_size = palm_px.copy(), hand_px, t, palm_size_px
             return 0.0, 0.0
         raw_step = (palm_px - self._prev_px) / (0.5 * (hand_px + self._prev_hand))
+        if self.cfg.vertical_source == "height" and palm_size_px > 0 and self._prev_size > 0:
+            # Raising the hand toward an overhead camera makes the palm look bigger: map that to
+            # cursor-up. In hand-length-equivalent units so leash/acceleration treat it like x.
+            raw_step = np.array([raw_step[0], -np.log(palm_size_px / self._prev_size) * self.cfg.height_gain])
         dt = t - self._prev_t
-        self._prev_px, self._prev_hand, self._prev_t = palm_px.copy(), hand_px, t
+        self._prev_px, self._prev_hand, self._prev_t, self._prev_size = palm_px.copy(), hand_px, t, palm_size_px
         mag = float(np.linalg.norm(raw_step))
         self.last_step = mag
         self.last_speed = mag / dt if dt > 0 else 0.0

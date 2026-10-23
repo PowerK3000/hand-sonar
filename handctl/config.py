@@ -61,6 +61,8 @@ class PosesCfg:
 @dataclass(frozen=True)
 class PointerCfg:
     smooth_ms: float
+    vertical_source: str
+    height_gain: float
     mirror: bool
     pixels_per_hand: float
     acceleration: float
@@ -167,6 +169,8 @@ def validate(c: Config) -> Config:
            "[filter] cutoffs must be > 0 and beta >= 0")
     _check(0 < c.poses.curled_max < c.poses.extended_min <= 1,
            "[poses] need 0 < curled_max < extended_min <= 1")
+    _check(c.pointer.vertical_source in ("height", "image_y"), "[pointer] vertical_source must be height or image_y")
+    _check(c.pointer.height_gain > 0, "[pointer] height_gain must be > 0")
     _check(c.pointer.pixels_per_hand > 0 and c.pointer.acceleration >= 1
            and c.pointer.accel_ref_hands_per_s > 0 and c.pointer.deadzone >= 0,
            "[pointer] values out of range")

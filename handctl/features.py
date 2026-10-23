@@ -36,6 +36,7 @@ class HandFeatures:
     index_local: np.ndarray          # index tip in palm frame (x: thumb side, y: forward, z: dorsal), hand lengths
     palm_px: np.ndarray              # palm centre in camera pixels
     hand_px: float                   # hand length in camera pixels at the hand's current pose
+    palm_size_px: float = 0.0        # mean distance between palm keypoints in the image: grows as the hand rises toward the camera
 
 
 def _unit(v: np.ndarray) -> np.ndarray:
@@ -99,6 +100,7 @@ def compute(frame: HandFrame) -> HandFeatures:
     d_img = sum(np.linalg.norm(img[a] - img[b]) for a, b in pairs)
     d_world = sum(np.linalg.norm(w[a] - w[b]) for a, b in pairs)
     hand_px = size * d_img / d_world
+    palm_size_px = d_img / len(pairs)
 
     return HandFeatures(
         t=frame.t,
@@ -112,4 +114,5 @@ def compute(frame: HandFrame) -> HandFeatures:
         index_local=index_local,
         palm_px=img[list(PALM)].mean(axis=0),
         hand_px=float(hand_px),
+        palm_size_px=float(palm_size_px),
     )

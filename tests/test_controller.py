@@ -272,3 +272,20 @@ def test_cursor_leash_swallows_jitter_but_passes_real_motion():
     assert sum(abs(a.dx) + abs(a.dy) for a in jit if a.kind == "move") < 5
     acts = r.run(0.5, thumb_to=None, position=(0, 0, 0.5), end_position=(0.06, 0, 0.5))
     assert abs(sum(a.dx for a in acts if a.kind == "move")) > 100
+
+
+def test_raising_hand_toward_overhead_camera_moves_cursor_up():
+    r = Rig()
+    r.run(0.3, thumb_to=None, position=(0, 0, 0.5))
+    acts = r.run(0.6, thumb_to=None, position=(0, 0, 0.5), end_position=(0, 0, 0.42))   # ~8 cm closer
+    acts += r.run(0.4, thumb_to=None, position=(0, 0, 0.42))
+    dy = sum(a.dy for a in acts if a.kind == "move")
+    assert dy < -100                                     # screen y grows downward: negative = up
+
+
+def test_sliding_hand_toward_monitor_no_longer_moves_cursor_vertically():
+    r = Rig()
+    r.run(0.3, thumb_to=None, position=(0, 0, 0.5))
+    acts = r.run(0.6, thumb_to=None, position=(0, 0, 0.5), end_position=(0, 0.05, 0.5))  # image-y slide
+    acts += r.run(0.4, thumb_to=None, position=(0, 0.05, 0.5))
+    assert abs(sum(a.dy for a in acts if a.kind == "move")) < 30
