@@ -164,3 +164,12 @@ init + alternating pose/shape refinement), Numba FK (8.7 ms/frame). Scan protoco
   (t-20261022-1743, hand 50% larger in frame, different position) 0/32 either way.
 - Conclusion so far: overhead-camera resting-hand taps do not generalise across sittings at
   this data scale, even with personal model + stabilisation.
+
+## Decision point (2026-10-22, ~4 h of live tuning)
+Overhead camera + resting hand is the root limit: thumb contact hidden, height only as noisy
+apparent size, small foreshortened hand. Live: height-based vertical brought jitter back; lift
+clicks fired 8x on a still hand. Every tweak traded jitter vs lag vs recall.
+Strong fix = camera placement, not code: webcam low on the desk, 30-50 cm from the resting hand,
+viewing it from the front/side. Then up/down = image y (raise/lower hand), side = image x,
+clicks = thumb-finger pinch seen in profile, with the stabiliser/leash/glide kept on top.
+Config switched to vertical_source = "image_y", taps mode = "pinch" for that setup.

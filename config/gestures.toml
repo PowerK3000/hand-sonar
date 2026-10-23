@@ -20,7 +20,7 @@ pause_hotkey = "ctrl+alt+h"
 #   "lift":  index fingertip lift = left click, middle lift = right click (training-free; chosen
 #            2026-10-22 because a lift is ~8.7x rest jitter from an overhead camera vs ~3.6x for a
 #            thumb tap). Middle lift is not yet validated on recordings.
-mode = "lift"
+mode = "pinch"                    # front/side camera sees thumb-finger contact directly; "lift"/"model" were overhead-camera workarounds
 model_path = "models/tap_model.joblib"
 left_threshold = 0.7              # held-out t1 (ensemble): left 12/16, right 16/17, 0 false triggers
 right_threshold = 0.4
@@ -50,7 +50,7 @@ extended_min = 0.85               # finger straightness (tip-to-knuckle / bone l
 curled_max = 0.70                 # ...and below this to count as curled
 
 [pointer]
-vertical_source = "height"        # "height": raise/lower hand = cursor up/down (palm grows as it nears the overhead camera)
+vertical_source = "image_y"       # front/side camera: raising the hand moves it up in the image. "height": raise/lower hand = cursor up/down (palm grows as it nears the overhead camera)
                                   # "image_y": push hand toward/away from the monitor
 height_gain = 5.0                 # hand-length-equivalents per unit of log palm size (~10 cm raise = ~1 hand length of travel)
 smooth_ms = 35                    # cursor glides toward each new target at 125 Hz instead of jumping per camera frame
