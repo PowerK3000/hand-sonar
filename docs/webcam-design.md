@@ -150,3 +150,7 @@ init + alternating pose/shape refinement), Numba FK (8.7 ms/frame). Scan protoco
 - Next fix: curled ring/pinky misfit 33-39 px during taps (top view: curled vs straight-away
   ambiguity -> local minimum). Add per-finger multi-hypothesis re-initialisation when a
   finger's 2D residual is high.
+- Cross-sitting tap model on scan-calibrated fitted features (tools/model_features_eval.py):
+  **37/128 taps, 12 false/stray** vs raw keypoints 21/128, 25 (s1 left 10/11, t1 left 25/42
+  trained on only 22 left taps). ~1.8x hits, half the false triggers; ship bar not met.
+  Right-click doesn't transfer yet. Bottleneck remains data: 3 sittings, 2 of them tiny.
