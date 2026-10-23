@@ -80,13 +80,16 @@ class Controller:
         shape = np.concatenate([[f.pinch_index, f.pinch_middle],
                                 [f.straightness[n] for n in names], f.index_local])
         s = self._shape_filter(shape, f.t)
+        return replace(f, pinch_index=float(s[0]), pinch_middle=float(s[1]),
+                       straightness={n: float(v) for n, v in zip(names, s[2:2 + len(names)])},
+                       index_local=s[2 + len(names):])
+
+    def _filter_palm(self, f: HandFeatures) -> HandFeatures:
+        """Cursor path: palm position/size get their own (heavier) smoothing."""
         palm_hand = self._palm_filter(np.append(f.palm_px, f.hand_px), f.t, speed_scale=f.hand_px)
         # Log palm size is dimensionless (0.1 = 10% bigger), so it filters in its own units.
         log_size = self._size_filter(np.array([np.log(max(f.palm_size_px, 1e-6))]), f.t)[0]
-        return replace(f, pinch_index=float(s[0]), pinch_middle=float(s[1]),
-                       straightness={n: float(v) for n, v in zip(names, s[2:2 + len(names)])},
-                       index_local=s[2 + len(names):], palm_px=palm_hand[:2], hand_px=float(palm_hand[2]),
-                       palm_size_px=float(np.exp(log_size)))
+        return replace(f, palm_px=palm_hand[:2], hand_px=float(palm_hand[2]), palm_size_px=float(np.exp(log_size)))
 
     def _reset_tracking(self) -> None:
         self._shape_filter.reset()
@@ -94,8 +97,12 @@ class Controller:
         self._size_filter.reset()
         self.pointer.reset()
 
-    def step(self, frame: HandFrame | None, t: float) -> list[Action]:
-        """Advance one camera frame (frame=None when no hand is visible)."""
+    def step(self, frame: HandFrame | None, t: float, pointer_frame: HandFrame | None = None) -> list[Action]:
+        """Advance one camera frame (frame=None when no hand is visible).
+
+        `pointer_frame`: optionally a stabilised copy of the same frame for the cursor only.
+        Gestures must read the raw landmarks: the cursor stabiliser smoothed quick taps away.
+        """
         f: HandFeatures | None = None
         if frame is not None:
             if self._last_t is not None and frame.t - self._last_t > TRACK_GAP_S:
@@ -133,13 +140,22 @@ class Controller:
         # Scroll keeps its momentum through a clutch (a fist can't start a scroll: it needs the index out).
         actions += self.scroll.update(f, engaged, t, blocked=self.left.busy or self.right.busy)
 
+        pf = None
+        if f is not None:
+            src = raw
+            if pointer_frame is not None:
+                try:
+                    src = compute(replace(pointer_frame, handedness=f.handedness))
+                except DegenerateHand:
+                    pass
+            pf = self._filter_palm(src)
         if f is None:
             self.pointer.reset()
         else:
             frozen = not engaged or self.clutched or self.right.busy or self.scroll.active
             if self.taps is None:
                 frozen = frozen or self.left.freezes_pointer(f)
-            dx, dy = self.pointer.update(f.palm_px, f.hand_px, f.t, frozen, f.palm_size_px)
+            dx, dy = self.pointer.update(pf.palm_px, pf.hand_px, pf.t, frozen, pf.palm_size_px)
             if dx or dy:
                 actions.append(Action("move", dx=dx, dy=dy))
                 self._moves.append((t, dx, dy))

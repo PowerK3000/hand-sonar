@@ -91,6 +91,7 @@ class DragCfg:
 
 @dataclass(frozen=True)
 class ScrollCfg:
+    hold_ms: float
     natural: bool
     vertical_axis: str
     horizontal: bool

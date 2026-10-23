@@ -73,9 +73,10 @@ def main(argv: list[str] | None = None) -> int:
                         "s_pinky", "spread", "idx_x", "idx_y", "idx_z", "palm_x", "palm_y", "hand_px", "actions"])
             while not args.seconds or time.monotonic() - t_start < args.seconds:
                 t, bgr = camera.latest(timeout=2.0)
-                frame = stab(tracker.process(t, bgr))
+                frame = tracker.process(t, bgr)
                 now = time.monotonic()
-                actions = ctl.step(frame, now)
+                # Clicks read raw landmarks; only the cursor uses the stabilised copy.
+                actions = ctl.step(frame, now, pointer_frame=stab(frame))
                 if out is not None:
                     for a in actions:
                         try:

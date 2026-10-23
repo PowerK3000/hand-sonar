@@ -37,8 +37,10 @@ min_confidence = 0.6              # ignore frames where the tracker is unsure
 [filter]
 # One Euro filter: low jitter when the hand is still, low lag when it moves fast.
 # Applied to landmarks in hand lengths, so beta is "extra Hz per hand-length/s of speed".
-min_cutoff_hz = 1.2
-beta = 1.0
+# Gesture filter (pinch distances, finger straightness): light, so quick taps survive. At 1.2 Hz /
+# beta 1.0 a 100 ms tap only reached 0.14-0.16 vs the 0.16 threshold (live: "really unresponsive").
+min_cutoff_hz = 4.0
+beta = 3.0
 # The cursor's palm signal is already stabilised (handctl/stabilize.py) and leashed, so its own
 # filter only needs to be light: at beta 1.0 it added ~70 ms of lag on slow moves (2026-10-22).
 palm_min_cutoff_hz = 1.2           # lighter settings (3.0 / 8.0) brought jitter back live (2026-10-22)
@@ -46,8 +48,8 @@ palm_beta = 1.0
 d_cutoff_hz = 1.0
 
 [poses]
-extended_min = 0.85               # finger straightness (tip-to-knuckle / bone length) to count as extended
-curled_max = 0.70                 # ...and below this to count as curled
+extended_min = 0.9                # finger straightness (tip-to-knuckle / bone length) to count as extended
+curled_max = 0.62                 # ...and below this to count as curled
 
 [pointer]
 # Which hand motion drives each cursor axis depends on camera placement. Set by hand from live
@@ -95,6 +97,7 @@ start_move = 0.3                  # net hand travel (hand lengths) since the pin
 # Finger up -> content moves up -> page scrolls down (and vice versa).
 action = "scroll"
 pose = "index_extended"           # index out; middle, ring and pinky curled
+hold_ms = 150                     # pose must be held this long first: passing through it on the way into a pinch scrolled (live)
 natural = true
 vertical_axis = "palm_forward"    # which finger motion counts as "up": palm_forward | palm_normal
 horizontal = true                 # sideways slide = horizontal scroll

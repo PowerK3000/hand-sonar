@@ -115,6 +115,7 @@ class Scroll:
         self._prev_t = 0.0
         self._vel = np.zeros(2)       # wheel units/s (h, v)
         self._coast_t: float | None = None
+        self._pose_since: float | None = None
 
     def stop(self) -> None:
         self.active, self._prev, self._vel, self._coast_t = False, None, np.zeros(2), None
@@ -135,6 +136,13 @@ class Scroll:
             return []
         pose = f is not None and not blocked and index_pointing(f, self.cfg) \
             and f.pinch_index > self.cfg.click.pinch_open
+        if pose:
+            if self._pose_since is None:
+                self._pose_since = f.t
+            if not self.active and (f.t - self._pose_since) * 1000 < s.hold_ms:
+                return []
+        else:
+            self._pose_since = None
         if pose:
             self._coast_t = None
             if not self.active or self._prev is None:

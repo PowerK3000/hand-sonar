@@ -92,8 +92,9 @@ class HandControlApp:
             stab = LandmarkStabilizer()
             while not self._stop.is_set():
                 t, bgr = camera.latest(timeout=2.0)
-                frame = stab(tracker.process(t, bgr))
-                actions = self.controller.step(frame, time.monotonic())
+                frame = tracker.process(t, bgr)
+                # Clicks read raw landmarks; only the cursor uses the stabilised copy.
+                actions = self.controller.step(frame, time.monotonic(), pointer_frame=stab(frame))
                 with self._lock:
                     for a in actions:
                         if a.kind != "move":
