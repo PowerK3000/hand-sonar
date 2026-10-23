@@ -133,3 +133,31 @@ def test_tracking_speed_budget():
     per_frame_ms = (time.perf_counter() - t0) / 20 * 1000
     print(f"fit {per_frame_ms:.1f} ms/frame")
     assert per_frame_ms < 40
+
+
+def test_calibration_learns_true_proportions_from_generic_guesses():
+    """2D comes from Kayden's true hand; the '3D guesses' come from a generic hand (like
+    MediaPipe). Calibration must move the proportions toward the truth."""
+    from handctl.handmodel import calibrate
+    true = sk.HandShape(palm=SHAPE.palm * 1.0,
+                        finger_bones=SHAPE.finger_bones * np.array([[1.18], [1.0], [0.9], [1.1]]),
+                        finger_splay=SHAPE.finger_splay,
+                        thumb_bones=SHAPE.thumb_bones * np.array([1.15, 0.9, 1.1]))
+    rng = np.random.default_rng(21)
+    frames = []
+    for _ in range(80):
+        pose = random_pose(rng)
+        J_true = sk.camera_joints(true, pose)[0]
+        J_gen = sk.camera_joints(SHAPE, pose)[0]
+        obs = CAM.project(J_true) + rng.normal(0, 1.5, (21, 2))
+        mp3d = (J_gen - J_gen.mean(0)) + rng.normal(0, 0.003, (21, 3))
+        frames.append((mp3d, obs, "right"))
+    s0 = calibrate.initial_shape(frames)
+    s1 = calibrate.refine(s0, frames, CAM, rounds=2, n=60, log=lambda *_: None)
+
+    def ratio_err(s):
+        b = np.concatenate([s.finger_bones.ravel(), s.thumb_bones])
+        t = np.concatenate([true.finger_bones.ravel(), true.thumb_bones])
+        return np.abs(b / b.sum() - t / t.sum()).sum()
+    print(f"ratio error before {ratio_err(s0):.4f} after {ratio_err(s1):.4f}")
+    assert ratio_err(s1) < 0.6 * ratio_err(s0)
