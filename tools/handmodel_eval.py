@@ -54,6 +54,15 @@ def report(label, t, beats, metrics, rms, name):
 
 
 def main(calib_session, test_sessions):
+    if calib_session == "--saved":
+        shape = calibrate.load(Path("models/hand_shape.json"))
+        cam = calibrate.load_frames([Path(test_sessions[0])])[1]
+        print("using saved shape models/hand_shape.json")
+        for s in test_sessions:
+            for f in sorted(Path(s).glob("*.npz")):
+                if f.name.split("_", 1)[1].removesuffix(".npz") in STEPS:
+                    report(*run_step(f, shape, cam), Path(s).name)
+        return
     frames, cam = calibrate.load_frames([Path(calib_session)])
     t0 = time.time()
     shape = calibrate.refine(calibrate.initial_shape(frames), frames, cam, rounds=3, n=150)

@@ -28,27 +28,28 @@ from .fitter import Camera, PoseFitter
 from .skeleton import HandShape
 
 PALM_IDS = [1, 5, 9, 13, 17]
-SHAPE_PRIOR_REL = 0.15          # shape may deviate ~15% from the MediaPipe-derived start
+SHAPE_PRIOR_REL = 0.25          # bone lengths may deviate ~25% from the anatomical average
+PALM_PRIOR_REL = 0.8            # palm landmark layout: nearly free
+SPLAY_PRIOR_RAD = 0.4
 
 
 def initial_shape(frames: list[tuple[np.ndarray, np.ndarray, str]]) -> HandShape:
-    palms, fingers, thumbs, splays = [], [], [], []
-    for world, _, side in frames:
-        w = world * np.array([-1.0, 1.0, 1.0]) if side == "left" else world
-        try:
-            _, rot = palm_frame(w, "right")
-        except DegenerateHand:
-            continue
-        local = (w - w[0]) @ rot.T
-        palms.append(local[PALM_IDS])
-        fingers.append([[np.linalg.norm(w[r + k + 1] - w[r + k]) for k in range(3)] for r in sk.FINGER_ROOTS])
-        thumbs.append([np.linalg.norm(w[k + 1] - w[k]) for k in (1, 2, 3)])
-        splays.append([np.arctan2(local[r + 1, 0] - local[r, 0], local[r + 1, 1] - local[r, 1])
-                       for r in sk.FINGER_ROOTS])
-    if len(palms) < 20:
-        raise ValueError(f"need at least 20 usable frames, got {len(palms)}")
-    return HandShape(palm=np.median(palms, axis=0), finger_bones=np.median(fingers, axis=0),
-                     finger_splay=np.median(splays, axis=0), thumb_bones=np.median(thumbs, axis=0))
+    """Anatomical average hand scaled to Kayden's overall hand size.
+
+    MediaPipe's world keypoints are learned landmarks, not anatomical joints: on Kayden's scan
+    their proximal phalanges came out ~24 mm (real ~40), the palm half as wide, pinky splay 37 deg.
+    Starting calibration from those proportions anchored it to the wrong hand (fit rms 15-20 px
+    vs ~10 px for a generic hand). So only the overall size is taken from MediaPipe; proportions
+    come from 2D refinement.
+    """
+    sizes = [np.linalg.norm(w[9] - w[0]) for w, _, _ in frames]
+    sizes = [x for x in sizes if x > 0.02]
+    if len(sizes) < 20:
+        raise ValueError(f"need at least 20 usable frames, got {len(sizes)}")
+    base = sk.default_shape()
+    k = float(np.median(sizes)) / float(np.linalg.norm(base.palm[2]))
+    return HandShape(palm=base.palm * k, finger_bones=base.finger_bones * k,
+                     finger_splay=base.finger_splay.copy(), thumb_bones=base.thumb_bones * k)
 
 
 def _pack(s: HandShape) -> np.ndarray:
@@ -85,11 +86,16 @@ def diverse_subset(frames, n: int) -> list:
     return out
 
 
-def refine(shape0: HandShape, frames, camera: Camera, rounds: int = 3, n: int = 150,
+def refine(shape0: HandShape, frames, camera: Camera, rounds: int = 5, n: int = 150,
            log=print) -> HandShape:
     sample = diverse_subset(frames, n)
     x0 = _pack(shape0)
+    # The tracker's keypoints are learned landmarks (e.g. a palm ~half as wide as anatomical
+    # knuckles), so the palm template and splay must be free to move to where *MediaPipe*
+    # puts them; bone lengths stay closer to anatomy.
     prior_sigma = np.maximum(np.abs(x0) * SHAPE_PRIOR_REL, 0.004)
+    prior_sigma[:15] = np.maximum(np.abs(x0[:15]) * PALM_PRIOR_REL, 0.01)
+    prior_sigma[27:31] = SPLAY_PRIOR_RAD
     shape = shape0
     for rnd in range(rounds):
         poses, rms = [], []

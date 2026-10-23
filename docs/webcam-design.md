@@ -137,3 +137,16 @@ init + alternating pose/shape refinement), Numba FK (8.7 ms/frame). Scan protoco
   generalise across sittings from that. Plan: one hand scan (`scan_hand.bat`), then 3-4 short
   sittings on different days (`record_session.bat`), re-run `python -m handctl.evaluate_taps`
   and `python -m tools.model_features_eval`. Live integration of the fitter waits for a win.
+
+### Scan calibration (scan1, 2026-10-22)
+- Bug found: MediaPipe world keypoints are learned landmarks with non-anatomical proportions
+  (proximal phalanges ~24 mm, palm half as wide). Calibration was initialised from them and
+  anchored within 15%, giving 15-20 px fits. Now: anatomical average scaled to Kayden's hand
+  size, palm layout nearly free (it must match where MediaPipe puts landmarks), 5 rounds.
+  Result: index 41/22/17 mm, middle 42/27/19, thumb metacarpal 41 mm; scan fit ~9.9 px.
+- Tap separability with the scan-calibrated model (taps below non-tap p5):
+  t1 right 98% (MP 45%, 2D 86%); t1 click 36% (= MP); s2 click 55% (MP 9%, 2D 64%);
+  s2 right 36% (MP 64%).
+- Next fix: curled ring/pinky misfit 33-39 px during taps (top view: curled vs straight-away
+  ambiguity -> local minimum). Add per-finger multi-hypothesis re-initialisation when a
+  finger's 2D residual is high.
