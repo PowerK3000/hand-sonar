@@ -38,8 +38,8 @@ min_cutoff_hz = 1.2
 beta = 1.0
 # The cursor's palm signal is already stabilised (handctl/stabilize.py) and leashed, so its own
 # filter only needs to be light: at beta 1.0 it added ~70 ms of lag on slow moves (2026-10-22).
-palm_min_cutoff_hz = 3.0
-palm_beta = 8.0
+palm_min_cutoff_hz = 1.2           # lighter settings (3.0 / 8.0) brought jitter back live (2026-10-22)
+palm_beta = 1.0
 d_cutoff_hz = 1.0
 
 [poses]
@@ -47,14 +47,14 @@ extended_min = 0.85               # finger straightness (tip-to-knuckle / bone l
 curled_max = 0.70                 # ...and below this to count as curled
 
 [pointer]
-smooth_ms = 15                    # cursor glides toward each new target at 125 Hz instead of jumping per camera frame
+smooth_ms = 35                    # cursor glides toward each new target at 125 Hz instead of jumping per camera frame
 # Cursor follows the whole hand (palm centre), relative like a trackpad. Motion is measured in
 # hand lengths, so moving one hand-length gives the same cursor travel at any camera distance.
 mirror = true                     # webcam faces you: your right = camera's left
 pixels_per_hand = 450             # cursor travel for one hand-length of motion at slow speed (was 700: too twitchy live)
 acceleration = 2.0                # >1 = fast moves travel further (1 = linear)
 accel_ref_hands_per_s = 1.0       # speed where acceleration starts to kick in
-deadzone = 0.03                   # leash radius in hand lengths: the cursor ignores palm jitter inside it
+deadzone = 0.04                   # leash radius in hand lengths: the cursor ignores palm jitter inside it
 
 [gestures.click]
 action = "left_click"
