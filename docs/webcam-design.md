@@ -187,7 +187,7 @@ better tap contrast. Kept `handctl/rtmpose.py` + `tools/tracker_compare.py`, not
 
 ## Comparison with a popular GitHub project (2026-10-22)
 takeyamayuki/NonMouse (Apache-2.0, 202 stars), source only, reviewed, run unmodified in its own venv
-(C:\Users\kayde\source\third_party\NonMouse) via a small launcher that maps its legacy
+(a separate local checkout) via a small launcher that maps its legacy
 `mp.solutions.hands` calls onto the same MediaPipe Tasks model we use, so tracking was identical.
 Kayden's verdict: "really counterintuitive controls, not convenient, and really jittery." It moves the
 cursor only while Alt is held, follows the index fingertip with a plain moving average, and clicks by

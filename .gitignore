@@ -6,3 +6,6 @@ logs/
 logs_*.txt
 models/
 data/fits/
+
+data/ble/
+prof.out
